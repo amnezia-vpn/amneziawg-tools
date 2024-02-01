@@ -46,15 +46,15 @@ WITH_BASHCOMPLETION=yes WITH_WGQUICK=yes WITH_SYSTEMDUNITS=yes -C src
 %files
 %doc README.md contrib
 %license COPYING
-%{_bindir}/wg
-%{_bindir}/wg-quick
-%{_sysconfdir}/wireguard/
-%{_datadir}/bash-completion/completions/wg
-%{_datadir}/bash-completion/completions/wg-quick
-%{_unitdir}/wg-quick@.service
-%{_unitdir}/wg-quick.target
-%{_mandir}/man8/wg.8*
-%{_mandir}/man8/wg-quick.8*
+%{_bindir}/awg
+%{_bindir}/awg-quick
+%{_sysconfdir}/amnezia/amneziawg/
+%{_datadir}/bash-completion/completions/awg
+%{_datadir}/bash-completion/completions/awg-quick
+%{_unitdir}/awg-quick@.service
+%{_unitdir}/awg-quick.target
+%{_mandir}/man8/awg.8*
+%{_mandir}/man8/awg-quick.8*
 
 %changelog
 * Thu Feb 1 2024 Yuri Egorov <ye@amnezia.org> - 1.0.20240201-1
