@@ -4,7 +4,7 @@ rem Copyright (C) 2019-2021 WireGuard LLC. All Rights Reserved.
 
 setlocal enabledelayedexpansion
 set BUILDDIR=%~dp0
-set PATH=%BUILDDIR%.deps\llvm-mingw\bin;%BUILDDIR%src;%PATH%
+set PATH=%BUILDDIR%.deps\llvm-mingw\bin;%BUILDDIR%src;%BUILDDIR%.deps;%PATH%
 set PATHEXT=.exe
 cd /d %BUILDDIR% || exit /b 1
 
@@ -14,7 +14,8 @@ if exist .deps/prepared goto :build
 	mkdir .deps || goto :error
 	cd  .deps || goto :error
 	call :download llvm-mingw-msvcrt.zip https://download.wireguard.com/windows-toolchain/distfiles/llvm-mingw-20201020-msvcrt-x86_64.zip 2e46593245090df96d15e360e092f0b62b97e93866e0162dca7f93b16722b844 || goto :error
-	call :download wireguard-nt.zip https://download.wireguard.com/wireguard-nt/wireguard-nt-0.10.1.zip 772c0b1463d8d2212716f43f06f4594d880dea4f735165bd68e388fc41b81605 || goto :error
+	rem Mirror of https://sourceforge.net/projects/ezwinports/files/make-4.2.1-without-guile-w32-bin.zip
+	call :download make.zip https://download.wireguard.com/windows-toolchain/distfiles/make-4.2.1-without-guile-w32-bin.zip 30641be9602712be76212b99df7209f4f8f518ba764cf564262bc9d6e4047cc7 "--strip-components 1 bin" || goto :error
 	copy /y NUL prepared > NUL || goto :error
 	cd .. || goto :error
 
@@ -40,8 +41,6 @@ if exist .deps/prepared goto :build
 
 :build_plat
 	mkdir %1 >NUL 2>&1
-	echo [+] Assembling resources %1
-	%~2-w64-mingw32-windres -I ".deps\wireguard-nt\bin\%~1" -DWIREGUARD_VERSION_ARRAY=0.5.3 -DWIREGUARD_VERSION_STR=0.5.3 -i src/wincompat/resources.rc -o "src/wincompat/resources_%~3.syso" -O coff -c 65001 || exit /b %errorlevel%
 	echo [+] Building command line tools %1
 	del src\*.exe src\*.o src\wincompat\*.o src\wincompat\*.lib 2> NUL
 	set LDFLAGS=-s
