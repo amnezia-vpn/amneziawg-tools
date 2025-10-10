@@ -88,6 +88,10 @@ struct wg_peer_io {
 #define WG_INTERFACE_DEVICE_HAS_I3 (1 << 18)
 #define WG_INTERFACE_DEVICE_HAS_I4 (1 << 19)
 #define WG_INTERFACE_DEVICE_HAS_I5 (1 << 20)
+#define WG_INTERFACE_DEVICE_HAS_DI (1 << 21)
+#define WG_INTERFACE_DEVICE_HAS_DR (1 << 22)
+#define WG_INTERFACE_DEVICE_HAS_DC (1 << 23)
+#define WG_INTERFACE_DEVICE_HAS_DT (1 << 24)
 
 struct wg_interface_io {
     uint16_t		i_flags;
@@ -115,6 +119,10 @@ struct wg_interface_io {
     uint8_t* i_i3;
     uint8_t* i_i4;
     uint8_t* i_i5;
+    char*    di;
+    char*    dr;
+    char*    dc;
+    char*    dt;
 };
 
 struct wg_data_io {

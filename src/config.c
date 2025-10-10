@@ -24,7 +24,7 @@
 
 // Keys that should be not stripped of whitespace
 static const char *awg_special_handshake_keys[] = {
-	"I1", "I2", "I3", "I4", "I5",
+	"I1", "I2", "I3", "I4", "I5", "DI", "DR", "DC", "DT",
 	NULL
 };
 
@@ -615,6 +615,22 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 			ret = parse_awg_string(&ctx->device->i5, "I5", value);
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_I5;
+		} else if (key_match("DI")) {
+			ret = parse_awg_string(&ctx->device->di, "DI", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_DI;
+		} else if (key_match("DR")) {
+			ret = parse_awg_string(&ctx->device->dr, "DR", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_DR;
+		} else if (key_match("DC")) {
+			ret = parse_awg_string(&ctx->device->dc, "DC", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_DC;
+		} else if (key_match("DT")) {
+			ret = parse_awg_string(&ctx->device->dt, "DT", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_DT;
 		} else {
 			goto error;
 		}
@@ -921,6 +937,35 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 				goto error;
 
 			device->flags |= WGDEVICE_HAS_I5;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "di") && argc >= 2 && !peer) {
+			if (!parse_awg_string(&device->di, "di", argv[1]))
+				goto error;
+
+			device->flags |= WGDEVICE_HAS_DI;
+			argv += 2;
+			argc -= 2;
+		}
+		else if (!strcmp(argv[0], "dr") && argc >= 2 && !peer) {
+			if (!parse_awg_string(&device->dr, "dr", argv[1]))
+				goto error;
+
+			device->flags |= WGDEVICE_HAS_DR;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "dc") && argc >= 2 && !peer) {
+			if (!parse_awg_string(&device->dc, "dc", argv[1]))
+				goto error;
+
+			device->flags |= WGDEVICE_HAS_DC;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "dt") && argc >= 2 && !peer) {
+			if (!parse_awg_string(&device->dt, "dt", argv[1]))
+				goto error;
+
+			device->flags |= WGDEVICE_HAS_DT;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "peer") && argc >= 2) {

@@ -224,6 +224,14 @@ again:
 			mnl_attr_put_strz(nlh, WGDEVICE_A_I4, dev->i4);
 		if (dev->flags & WGDEVICE_HAS_I5)
 			mnl_attr_put_strz(nlh, WGDEVICE_A_I5, dev->i5);
+		if (dev->flags & WGDEVICE_HAS_DI)
+			mnl_attr_put_strz(nlh, WGDEVICE_A_DI, dev->di);
+		if (dev->flags & WGDEVICE_HAS_DR)
+			mnl_attr_put_strz(nlh, WGDEVICE_A_DR, dev->dr);
+		if (dev->flags & WGDEVICE_HAS_DC)
+			mnl_attr_put_strz(nlh, WGDEVICE_A_DC, dev->dc);
+		if (dev->flags & WGDEVICE_HAS_DT)
+			mnl_attr_put_strz(nlh, WGDEVICE_A_DT, dev->dt);
 		if (dev->flags & WGDEVICE_HAS_FWMARK)
 			mnl_attr_put_u32(nlh, WGDEVICE_A_FWMARK, dev->fwmark);
 		if (dev->flags & WGDEVICE_REPLACE_PEERS)
@@ -633,6 +641,46 @@ static int parse_device(const struct nlattr *attr, void *data)
 			}
 
 			device->flags |= WGDEVICE_HAS_I5;
+		}
+		break;
+	case WGDEVICE_A_DI:
+		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
+			device->di = strdup(mnl_attr_get_str(attr));
+			if (!device->di) {
+				return MNL_CB_ERROR;
+			}
+
+			device->flags |= WGDEVICE_HAS_DI;
+		}
+		break;
+	case WGDEVICE_A_DR:
+		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
+			device->dr = strdup(mnl_attr_get_str(attr));
+			if (!device->dr) {
+				return MNL_CB_ERROR;
+			}
+
+			device->flags |= WGDEVICE_HAS_DR;
+		}
+		break;
+	case WGDEVICE_A_DC:
+		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
+			device->dc = strdup(mnl_attr_get_str(attr));
+			if (!device->dc) {
+				return MNL_CB_ERROR;
+			}
+
+			device->flags |= WGDEVICE_HAS_DC;
+		}
+		break;
+	case WGDEVICE_A_DT:
+		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
+			device->dt = strdup(mnl_attr_get_str(attr));
+			if (!device->dt) {
+				return MNL_CB_ERROR;
+			}
+
+			device->flags |= WGDEVICE_HAS_DT;
 		}
 		break;
 	}

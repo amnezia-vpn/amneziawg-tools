@@ -85,6 +85,15 @@ static int userspace_set_device(struct wgdevice *dev)
 	if (dev->flags & WGDEVICE_HAS_I5)
 		fprintf(f, "i5=%s\n", dev->i5);
 
+	if (dev->flags & WGDEVICE_HAS_DI)
+		fprintf(f, "di=%s\n", dev->di);
+	if (dev->flags & WGDEVICE_HAS_DR)
+		fprintf(f, "dr=%s\n", dev->dr);
+	if (dev->flags & WGDEVICE_HAS_DC)
+		fprintf(f, "dc=%s\n", dev->dc);
+	if (dev->flags & WGDEVICE_HAS_DT)
+		fprintf(f, "dt=%s\n", dev->dt);
+
 	for_each_wgpeer(dev, peer) {
 		key_to_hex(hex, peer->public_key);
 		fprintf(f, "public_key=%s\n", hex);
@@ -313,6 +322,38 @@ static int userspace_get_device(struct wgdevice **out, const char *iface)
 			}
 
 			dev->flags |= WGDEVICE_HAS_I5;
+		} else if (!peer && !strcmp(key, "di")) {
+			dev->di = strdup(value);
+			if (!dev->di) {
+				ret = -ENOMEM;
+				goto err;
+			}
+
+			dev->flags |= WGDEVICE_HAS_DI;
+		} else if (!peer && !strcmp(key, "dr")) {
+			dev->dr = strdup(value);
+			if (!dev->dr) {
+				ret = -ENOMEM;
+				goto err;
+			}
+
+			dev->flags |= WGDEVICE_HAS_DR;
+		} else if (!peer && !strcmp(key, "dc")) {
+			dev->dc = strdup(value);
+			if (!dev->dc) {
+				ret = -ENOMEM;
+				goto err;
+			}
+
+			dev->flags |= WGDEVICE_HAS_DC;
+		} else if (!peer && !strcmp(key, "dt")) {
+			dev->dt = strdup(value);
+			if (!dev->dt) {
+				ret = -ENOMEM;
+				goto err;
+			}
+
+			dev->flags |= WGDEVICE_HAS_DT;
 		} else if (!strcmp(key, "public_key")) {
 			struct wgpeer *new_peer = calloc(1, sizeof(*new_peer));
 
