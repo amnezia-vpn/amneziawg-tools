@@ -38,6 +38,12 @@ int showconf_main(int argc, const char *argv[])
 	}
 
 	printf("[Interface]\n");
+	if (device->network)
+		printf("Network = %s\n", device->network);
+	if (device->format_in)
+		printf("FormatIn = %s\n", device->format_in);
+	if (device->format_out)
+		printf("FormatOut = %s\n", device->format_out);
 	if (device->listen_port)
 		printf("ListenPort = %u\n", device->listen_port);
 	if (device->fwmark)

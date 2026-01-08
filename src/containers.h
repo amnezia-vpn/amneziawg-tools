@@ -96,7 +96,10 @@ enum {
 	WGDEVICE_HAS_I2 = 1U << 17,
 	WGDEVICE_HAS_I3 = 1U << 18,
 	WGDEVICE_HAS_I4 = 1U << 19,
-	WGDEVICE_HAS_I5 = 1U << 20
+	WGDEVICE_HAS_I5 = 1U << 20,
+	WGDEVICE_HAS_NETWORK = 1U << 21,
+	WGDEVICE_HAS_FORMAT_IN = 1U << 22,
+	WGDEVICE_HAS_FORMAT_OUT = 1U << 23,
 };
 
 struct wgdevice {
@@ -124,11 +127,14 @@ struct wgdevice {
 	char* response_packet_magic_header;
 	char* underload_packet_magic_header;
 	char* transport_packet_magic_header;
-	char*    i1;
-	char*    i2;
-	char*    i3;
-	char*    i4;
-	char*    i5;
+	char* i1;
+	char* i2;
+	char* i3;
+	char* i4;
+	char* i5;
+	char* network;
+	char* format_in;
+	char* format_out;
 };
 
 #define for_each_wgpeer(__dev, __peer) for ((__peer) = (__dev)->first_peer; (__peer); (__peer) = (__peer)->next_peer)
@@ -153,6 +159,9 @@ static inline void free_wgdevice(struct wgdevice *dev)
 	free(dev->i3);
 	free(dev->i4);
 	free(dev->i5);
+	free(dev->network);
+	free(dev->format_in);
+	free(dev->format_out);
 
 	free(dev);
 }

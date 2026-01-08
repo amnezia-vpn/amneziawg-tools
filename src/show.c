@@ -252,6 +252,12 @@ static void pretty_print(struct wgdevice *device)
 		terminal_printf("  " TERMINAL_BOLD "i4" TERMINAL_RESET ": %s\n", device->i4);
 	if (device->i5)
 		terminal_printf("  " TERMINAL_BOLD "i5" TERMINAL_RESET ": %s\n", device->i5);
+	if (device->flags & WGDEVICE_HAS_NETWORK)
+		terminal_printf("  " TERMINAL_BOLD "network" TERMINAL_RESET ": %s\n", device->network);
+	if (device->flags & WGDEVICE_HAS_FORMAT_IN)
+		terminal_printf("  " TERMINAL_BOLD "format_in" TERMINAL_RESET ": %s\n", device->format_in);
+	if (device->flags & WGDEVICE_HAS_FORMAT_OUT)
+		terminal_printf("  " TERMINAL_BOLD "format_out" TERMINAL_RESET ": %s\n", device->format_out);
 
 	if (device->first_peer) {
 		sort_peers(device);
@@ -293,6 +299,12 @@ static void dump_print(struct wgdevice *device, bool with_interface)
 	printf("%s\t", maybe_key(device->private_key, device->flags & WGDEVICE_HAS_PRIVATE_KEY));
 	printf("%s\t", maybe_key(device->public_key, device->flags & WGDEVICE_HAS_PUBLIC_KEY));
 	printf("%u\t", device->listen_port);
+
+	if (device->fwmark)
+		printf("0x%x\t", device->fwmark);
+	else
+		printf("off\t");
+
 	printf("%u\t", device->junk_packet_count);
 	printf("%u\t", device->junk_packet_min_size);
 	printf("%u\t", device->junk_packet_max_size);
@@ -300,29 +312,67 @@ static void dump_print(struct wgdevice *device, bool with_interface)
 	printf("%u\t", device->response_packet_junk_size);
 	printf("%u\t", device->cookie_reply_packet_junk_size);
 	printf("%u\t", device->transport_packet_junk_size);
-	fputs(device->init_packet_magic_header ? device->init_packet_magic_header : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->response_packet_magic_header ? device->response_packet_magic_header : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->underload_packet_magic_header ? device->underload_packet_magic_header : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->transport_packet_magic_header ? device->transport_packet_magic_header : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->i1 ? device->i1 : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->i2 ? device->i2 : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->i3 ? device->i3 : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->i4 ? device->i4 : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->i5 ? device->i5 : "(null)", stdout);
-	fputc('\t', stdout);
 
-	if (device->fwmark)
-		printf("0x%x\n", device->fwmark);
+	if (device->init_packet_magic_header)
+		printf("%s\t", device->init_packet_magic_header);
 	else
-		printf("off\n");
+		printf("1\t");
+
+	if (device->response_packet_magic_header)
+		printf("%s\t", device->response_packet_magic_header);
+	else
+		printf("2\t");
+
+	if (device->underload_packet_magic_header)
+		printf("%s\t", device->underload_packet_magic_header);
+	else
+		printf("3\t");
+
+	if (device->transport_packet_magic_header)
+		printf("%s\t", device->transport_packet_magic_header);
+	else
+		printf("4\t");
+
+	if (device->i1)
+		printf("%s\t", device->i1);
+	else
+		printf("off\t");
+
+	if (device->i2)
+		printf("%s\t", device->i2);
+	else
+		printf("off\t");
+
+	if (device->i3)
+		printf("%s\t", device->i3);
+	else
+		printf("off\t");
+
+	if (device->i4)
+		printf("%s\t", device->i4);
+	else
+		printf("off\t");
+
+	if (device->i5)
+		printf("%s\t", device->i5);
+	else
+		printf("off\t");
+
+	if (device->network)
+		printf("%s\t", device->network);
+	else
+		printf("udp\t");
+
+	if (device->format_in)
+		printf("%s\t", device->format_in);
+	else
+		printf("<d>\t");
+
+	if (device->format_out)
+		printf("%s\n", device->format_out);
+	else
+		printf("<d>\n");
+
 	for_each_wgpeer(device, peer) {
 		if (with_interface)
 			printf("%s\t", device->name);
@@ -434,7 +484,19 @@ static bool ugly_print(struct wgdevice *device, const char *param, bool with_int
 		if (with_interface)
 			printf("%s\t", device->name);
 		printf("%s\n", device->i5);
-	 } else if (!strcmp(param, "endpoints")) {
+	} else if (!strcmp(param, "network")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", device->network);
+	} else if (!strcmp(param, "format_in")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", device->format_in);
+	} else if (!strcmp(param, "format_out")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", device->format_out);
+	} else if (!strcmp(param, "endpoints")) {
 		for_each_wgpeer(device, peer) {
 			if (with_interface)
 				printf("%s\t", device->name);
