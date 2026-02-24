@@ -26,6 +26,8 @@ PRE_DOWN=( )
 POST_DOWN=( )
 SAVE_CONFIG=0
 CONFIG_FILE=""
+CONFIG_SEARCH_PATHS=( /usr/local/etc/amnezia/amneziawg )
+SOCKET_DIR="/var/run/amneziawg"
 PROGRAM="${0##*/}"
 ARGS=( "$@" )
 
@@ -41,8 +43,6 @@ die() {
 
 [[ ${BASH_VERSINFO[0]} -ge 4 ]] || die "Version mismatch: bash ${BASH_VERSINFO[0]} detected, when bash 4+ required"
 
-CONFIG_SEARCH_PATHS=( /etc/amnezia/amneziawg /usr/local/etc/amnezia/amneziawg )
-
 parse_options() {
 	local interface_section=0 line key value stripped path v
 	CONFIG_FILE="$1"
@@ -55,13 +55,15 @@ parse_options() {
 	[[ -e $CONFIG_FILE ]] || die "\`$CONFIG_FILE' does not exist"
 	[[ $CONFIG_FILE =~ (^|/)([a-zA-Z0-9_=+.-]{1,15})\.conf$ ]] || die "The config file must be a valid interface name, followed by .conf"
 	CONFIG_FILE="$(cd "${CONFIG_FILE%/*}" && pwd -P)/${CONFIG_FILE##*/}"
-	((($(stat -f '0%#p' "$CONFIG_FILE") & $(stat -f '0%#p' "${CONFIG_FILE%/*}") & 0007) == 0)) || echo "Warning: \`$CONFIG_FILE' is world accessible" >&2
+	((($(/usr/bin/stat -f '0%#p' "$CONFIG_FILE") & $(/usr/bin/stat -f '0%#p' "${CONFIG_FILE%/*}") & 0007) == 0)) || echo "Warning: \`$CONFIG_FILE' is world accessible" >&2
 	INTERFACE="${BASH_REMATCH[2]}"
 	shopt -s nocasematch
 	while read -r line || [[ -n $line ]]; do
 		stripped="${line%%\#*}"
+		[[ -z "${stripped//[[:space:]]/}" ]] && continue # skip empty lines
 		key="${stripped%%=*}"; key="${key##*([[:space:]])}"; key="${key%%*([[:space:]])}"
 		value="${stripped#*=}"; value="${value##*([[:space:]])}"; value="${value%%*([[:space:]])}"
+		[[ $stripped == *"="* && -z "$value" ]] && continue # skip lines with empty keys
 		[[ $key == "["* ]] && interface_section=0
 		[[ $key == "[Interface]" ]] && interface_section=1
 		if [[ $interface_section -eq 1 ]]; then
@@ -109,11 +111,10 @@ auto_su() {
 
 get_real_interface() {
 	local interface diff
-	wg show interfaces >/dev/null
-	[[ -f "/var/run/amneziawg/$INTERFACE.name" ]] || return 1
-	interface="$(< "/var/run/amneziawg/$INTERFACE.name")"
-	[[ -n $interface && -S "/var/run/amneziawg/$interface.sock" ]] || return 1
-	diff=$(( $(stat -f %m "/var/run/amneziawg/$interface.sock" 2>/dev/null || echo 200) - $(stat -f %m "/var/run/wireguard/$INTERFACE.name" 2>/dev/null || echo 100) ))
+	[[ -f "$SOCKET_DIR/$INTERFACE.name" ]] || return 1
+	interface="$(< "$SOCKET_DIR/$INTERFACE.name")"
+	[[ -n $interface && -S "$SOCKET_DIR/$interface.sock" ]] || return 1
+	diff=$(( $(stat -f %m "$SOCKET_DIR/$interface.sock" 2>/dev/null || echo 200) - $(stat -f %m "$SOCKET_DIR/$INTERFACE.name" 2>/dev/null || echo 100) ))
 	[[ $diff -ge 2 || $diff -le -2 ]] && return 1
 	REAL_INTERFACE="$interface"
 	echo "[+] Interface for $INTERFACE is $REAL_INTERFACE" >&2
@@ -121,15 +122,14 @@ get_real_interface() {
 }
 
 add_if() {
-	export WG_TUN_NAME_FILE="/var/run/amneziawg/$INTERFACE.name"
-	mkdir -p "/var/run/amneziawg/"
+	export WG_TUN_NAME_FILE="$SOCKET_DIR/$INTERFACE.name"
 	cmd "${WG_QUICK_USERSPACE_IMPLEMENTATION:-amneziawg-go}" utun
 	get_real_interface
 }
 
 del_routes() {
-	[[ -n $REAL_INTERFACE ]] || return 0
 	local todelete=( ) destination gateway netif
+	[[ -n $REAL_INTERFACE ]] || return 0
 	while read -r destination _ _ _ _ netif _; do
 		[[ $netif == "$REAL_INTERFACE" ]] && todelete+=( "$destination" )
 	done < <(netstat -nr -f inet)
@@ -153,8 +153,8 @@ del_routes() {
 }
 
 del_if() {
-	[[ -z $REAL_INTERFACE ]] || cmd rm -f "/var/run/wireguard/$REAL_INTERFACE.sock"
-	cmd rm -f "/var/run/wireguard/$INTERFACE.name"
+	[[ -z $REAL_INTERFACE ]] || cmd rm -f "$SOCKET_DIR/$REAL_INTERFACE.sock"
+	cmd rm -f "$SOCKET_DIR/$INTERFACE.name"
 }
 
 up_if() {
@@ -212,7 +212,7 @@ collect_endpoints() {
 	while read -r _ endpoint; do
 		[[ $endpoint =~ ^\[?([a-z0-9:.]+)\]?:[0-9]+$ ]] || continue
 		ENDPOINTS+=( "${BASH_REMATCH[1]}" )
-	done < <(wg show "$REAL_INTERFACE" endpoints)
+	done < <(awg show "$REAL_INTERFACE" endpoints)
 }
 
 declare -A SERVICE_DNS
@@ -369,7 +369,7 @@ add_route() {
 }
 
 set_config() {
-	cmd wg setconf "$REAL_INTERFACE" <(echo "$WG_CONFIG")
+	cmd awg setconf "$REAL_INTERFACE" <(echo "$WG_CONFIG")
 }
 
 save_config() {
@@ -399,7 +399,7 @@ save_config() {
 	done
 	old_umask="$(umask)"
 	umask 077
-	current_config="$(cmd wg showconf "$REAL_INTERFACE")"
+	current_config="$(cmd awg showconf "$REAL_INTERFACE")"
 	trap 'rm -f "$CONFIG_FILE.tmp"; exit' INT TERM EXIT
 	echo "${current_config/\[Interface\]$'\n'/$new_config}" > "$CONFIG_FILE.tmp" || die "Could not write configuration file"
 	sync "$CONFIG_FILE.tmp"
@@ -426,7 +426,7 @@ cmd_usage() {
 	  followed by \`.conf'. Otherwise, INTERFACE is an interface name, with
 	  configuration found at:
 	  ${CONFIG_SEARCH_PATHS[@]/%//INTERFACE.conf}.
-	  It is to be readable by wg(8)'s \`setconf' sub-command, with the exception
+	  It is to be readable by awg(8)'s \`setconf' sub-command, with the exception
 	  of the following additions to the [Interface] section, which are handled
 	  by $PROGRAM:
 
@@ -444,7 +444,7 @@ cmd_usage() {
 	  - SaveConfig: if set to \`true', the configuration is saved from the current
 	    state of the interface upon shutdown.
 
-	See wg-quick(8) for more info and examples.
+	See awg-quick(8) for more info and examples.
 	_EOF
 }
 
@@ -460,7 +460,7 @@ cmd_up() {
 	done
 	set_mtu
 	up_if
-	for i in $(while read -r _ i; do for i in $i; do [[ $i =~ ^[0-9a-z:.]+/[0-9]+$ ]] && echo "$i"; done; done < <(wg show "$REAL_INTERFACE" allowed-ips) | sort -nr -k 2 -t /); do
+	for i in $(while read -r _ i; do for i in $i; do [[ $i =~ ^[0-9a-z:.]+/[0-9]+$ ]] && echo "$i"; done; done < <(awg show "$REAL_INTERFACE" allowed-ips) | sort -nr -k 2 -t /); do
 		add_route "$i"
 	done
 	[[ $AUTO_ROUTE4 -eq 1 || $AUTO_ROUTE6 -eq 1 ]] && set_endpoint_direct_route
@@ -471,8 +471,8 @@ cmd_up() {
 }
 
 cmd_down() {
-	if ! get_real_interface || [[ " $(wg show interfaces) " != *" $REAL_INTERFACE "* ]]; then
-		die "\`$INTERFACE' is not a WireGuard interface"
+	if ! get_real_interface || [[ " $(awg show interfaces) " != *" $REAL_INTERFACE "* ]]; then
+		die "\`$INTERFACE' is not a AmneziaWG interface"
 	fi
 	execute_hooks "${PRE_DOWN[@]}"
 	[[ $SAVE_CONFIG -eq 0 ]] || save_config
@@ -481,8 +481,8 @@ cmd_down() {
 }
 
 cmd_save() {
-	if ! get_real_interface || [[ " $(wg show interfaces) " != *" $REAL_INTERFACE "* ]]; then
-		die "\`$INTERFACE' is not a WireGuard interface"
+	if ! get_real_interface || [[ " $(awg show interfaces) " != *" $REAL_INTERFACE "* ]]; then
+		die "\`$INTERFACE' is not a AmneziaWG interface"
 	fi
 	save_config
 }
