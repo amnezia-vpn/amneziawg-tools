@@ -63,7 +63,7 @@ parse_options() {
 		[[ -z "${stripped//[[:space:]]/}" ]] && continue # skip empty lines
 		key="${stripped%%=*}"; key="${key##*([[:space:]])}"; key="${key%%*([[:space:]])}"
 		value="${stripped#*=}"; value="${value##*([[:space:]])}"; value="${value%%*([[:space:]])}"
-		[[ $stripped == *"="* && -z "$value" ]] && continue # skip lines with empty keys
+		[[ $stripped == *"="* && -z "$value" ]] && continue # skip lines with empty values
 		[[ $key == "["* ]] && interface_section=0
 		[[ $key == "[Interface]" ]] && interface_section=1
 		if [[ $interface_section -eq 1 ]]; then
@@ -122,6 +122,7 @@ get_real_interface() {
 }
 
 add_if() {
+	[[ -d "$SOCKET_DIR" ]] || mkdir "$SOCKET_DIR"
 	export WG_TUN_NAME_FILE="$SOCKET_DIR/$INTERFACE.name"
 	cmd "${WG_QUICK_USERSPACE_IMPLEMENTATION:-amneziawg-go}" utun
 	get_real_interface
