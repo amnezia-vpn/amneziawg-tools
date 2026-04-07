@@ -75,9 +75,10 @@ jobs:
 
         # Пакуем модуль
         zip -r ../AmneziaWG-Tools-Module.zip ./*
+        cd ..
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-          name: AmneziaWG-Module
-          path: AmneziaWG-Module.zip
+          name: AmneziaWG-Tools-Module
+          path: AmneziaWG-Tools-Module.zip
