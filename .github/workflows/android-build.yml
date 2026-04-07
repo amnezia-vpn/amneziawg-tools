@@ -1,0 +1,86 @@
+name: Android
+
+on: [push]
+
+jobs:
+  Build-for-Android:
+    name: Build for Android
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Installing system dependencies
+      run: |
+        apt -y update && apt -y install build-essential unzip git python3 curl wget zip
+
+    - name: Downloading and unpacking the NDK
+      run: |
+        NDK_VER="r26b"
+        wget -q https://dl.google.com/android/repository/android-ndk-${NDK_VER}-linux.zip
+        unzip -q android-ndk-${NDK_VER}-linux.zip -d /opt
+        # Записываем путь в глобальное окружение GitHub
+        echo "ANDROID_NDK_HOME=/opt/android-ndk-${NDK_VER}" >> $GITHUB_ENV
+
+    - name: Setup Toolchain Variables
+      run: |
+        # Используем переменную из окружения
+        TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
+        TARGET=aarch64-linux-android34
+
+        # Сохраняем пути к бинарникам для следующих шагов
+        echo "CC=$TOOLCHAIN/bin/${TARGET}-clang" >> $GITHUB_ENV
+        echo "STRIP=$TOOLCHAIN/bin/llvm-strip" >> $GITHUB_ENV
+        echo "PATH=$TOOLCHAIN/bin:$PATH" >> $GITHUB_ENV
+
+    - name: Build AmneziaWG Tools
+      run: |
+        mkdir -p build
+        cd src
+
+        echo "--- Сборка основного бинарника awg ---"
+        make clean || true
+        # Используем переменные, которые GitHub заботливо сохранил
+        make CC=$CC STRIP=$STRIP LDFLAGS="-static-libgcc" V=1
+        mv wg ../build/awg
+
+        echo "--- Сборка wg-quick (android.c) ---"
+        cd wg-quick
+        $CC -O3 -Wall -D_GNU_SOURCE android.c -o awg-quick-android -lbinder_ndk -llog
+        $STRIP awg-quick-android
+        mv awg-quick-android ../../build/awg-quick
+        cd ../../
+
+    - name: Prepare Magisk/KSU Module
+      run: |
+        cd build
+        mkdir -p system/bin
+        mv awg system/bin/awg
+        mv awg-quick system/bin/awg-quick
+
+        # Создаем module.prop
+        cat <<EOF > module.prop
+        id=amneziawg_tools
+        name=AmneziaWG Tools for Android
+        version=${{ github.ref_name }}
+        versionCode=$(date +%Y%m%d)
+        author=AmneziaWG
+        description=Kernel-space AmneziaWG tools arm64 devices.
+        EOF
+
+        # Даем права на исполнение всем бинарникам
+        chmod 755 system/bin/*
+
+        # Пакуем модуль
+        zip -r ../AmneziaWG-Module-${{ github.ref_name }}.zip ./*
+
+    - name: Upload binaries to Release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: AmneziaWG-Module-${{ github.ref_name }}.zip
+        asset_name: AmneziaWG-Module-${{ github.ref_name }}.zip
+        tag: ${{ github.ref }}
+        overwrite: true
