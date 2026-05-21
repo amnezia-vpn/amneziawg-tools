@@ -5,11 +5,11 @@ _awg_completion() {
 	local a
 
 	if [[ $COMP_CWORD -eq 1 ]]; then
-		COMPREPLY+=( $(compgen -W "help show showconf set setconf addconf syncconf genkey genpsk pubkey" -- "${COMP_WORDS[1]}") )
+		COMPREPLY+=( $(compgen -W "help show showconf set setconf addconf syncconf genconf genkey genpsk pubkey" -- "${COMP_WORDS[1]}") )
 		return
 	fi
 	case "${COMP_WORDS[1]}" in
-		genkey|genpsk|pubkey|help) return; ;;
+		genconf|genkey|genpsk|pubkey|help) return; ;;
 		show|showconf|set|setconf|addconf|syncconf) ;;
 		*) return;
 	esac
