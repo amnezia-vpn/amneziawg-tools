@@ -23,6 +23,7 @@ static const struct {
 	{ "setconf", setconf_main, "Applies a configuration file to a WireGuard interface" },
 	{ "addconf", setconf_main, "Appends a configuration file to a WireGuard interface" },
 	{ "syncconf", setconf_main, "Synchronizes a configuration file to a WireGuard interface" },
+	{ "genconf", genconf_main, "Generates a new AmneziaWG configuration and writes it to stdout" },
 	{ "genkey", genkey_main, "Generates a new private key and writes it to stdout" },
 	{ "genpsk", genkey_main, "Generates a new preshared key and writes it to stdout" },
 	{ "pubkey", pubkey_main, "Reads a private key from stdin and writes a public key to stdout" }
