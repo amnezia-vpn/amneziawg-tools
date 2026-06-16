@@ -67,6 +67,32 @@ not setting these variables and relying on the auto-detection. However, if
 you're writing a package for a distro, you'll want to explicitly set these,
 depending on what you want.
 
+## AmneziaWG
+
+This fork adds AmneziaWG's obfuscation parameters on top of upstream
+wireguard-tools. Alongside the existing `Jc`/`Jmin`/`Jmax`, `S1`&ndash;`S4`,
+`H1`&ndash;`H4`, and `I1`&ndash;`I5` parameters, it supports:
+
+  * **`ImitateProtocol`** &mdash; an `[Interface]` configuration key selecting the
+    protocol whose traffic the obfuscation imitates: one of `none`, `quic`,
+    `dns`, `stun`, or `sip`. Only the userspace implementation
+    (`amneziawg-go`) honors it; it is ignored when running against the kernel
+    module. The value is forwarded verbatim and validated by the daemon. Example:
+
+        [Interface]
+        PrivateKey = ...
+        ImitateProtocol = quic
+
+  * **`WG_QUICK_FORCE_USERSPACE`** &mdash; an environment variable for
+    `awg-quick`. When set to a non-empty value, `awg-quick` skips the kernel
+    module and runs the userspace implementation directly (selected by
+    `WG_QUICK_USERSPACE_IMPLEMENTATION`, default `amneziawg-go`), failing if
+    that binary is not on `PATH` rather than falling back to the kernel. This
+    is useful for testing a userspace implementation while the kernel module
+    remains loaded:
+
+        # WG_QUICK_FORCE_USERSPACE=1 awg-quick up <interface>
+
 ## `contrib/`
 
 The `contrib/` subdirectory contains various scripts and examples. Most of these
