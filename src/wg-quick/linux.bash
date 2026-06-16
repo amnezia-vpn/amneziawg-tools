@@ -87,6 +87,13 @@ auto_su() {
 
 add_if() {
 	local ret
+	if [[ -n $WG_QUICK_FORCE_USERSPACE ]]; then
+		local userspace="${WG_QUICK_USERSPACE_IMPLEMENTATION:-amneziawg-go}"
+		command -v "$userspace" >/dev/null || die "\`$userspace' is not in the PATH, but WG_QUICK_FORCE_USERSPACE is set"
+		echo "[!] WG_QUICK_FORCE_USERSPACE set: using userspace implementation, skipping kernel module." >&2
+		cmd "$userspace" "$INTERFACE"
+		return 0
+	fi
 	if ! cmd ip link add "$INTERFACE" type amneziawg; then
 		ret=$?
 		[[ -e /sys/module/amneziawg ]] || ! command -v "${WG_QUICK_USERSPACE_IMPLEMENTATION:-amneziawg-go}" >/dev/null && exit $ret

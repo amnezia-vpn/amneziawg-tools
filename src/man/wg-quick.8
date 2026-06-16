@@ -256,6 +256,20 @@ sessions:
 
 \fB    # wg syncconf wgnet0 <(wg-quick strip wgnet0)\fP
 
+.SH ENVIRONMENT
+.TP
+\fBWG_QUICK_USERSPACE_IMPLEMENTATION\fP
+On Linux, selects the userspace implementation used when the kernel module is
+unavailable (or when \fBWG_QUICK_FORCE_USERSPACE\fP is set). Defaults to
+\fBamneziawg-go\fP.
+.TP
+\fBWG_QUICK_FORCE_USERSPACE\fP
+On Linux, if set to a non-empty value, the kernel module is skipped entirely and
+the userspace implementation is always used. If the userspace implementation is
+not found in the \fBPATH\fP, \fBwg-quick\fP exits with an error rather than
+falling back to the kernel module. This is useful for testing a userspace
+implementation while the kernel module remains loaded.
+
 .SH SEE ALSO
 .BR wg (8),
 .BR ip (8),
