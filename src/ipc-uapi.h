@@ -84,6 +84,8 @@ static int userspace_set_device(struct wgdevice *dev)
 		fprintf(f, "i4=%s\n", dev->i4);
 	if (dev->flags & WGDEVICE_HAS_I5)
 		fprintf(f, "i5=%s\n", dev->i5);
+	if (dev->flags & WGDEVICE_HAS_IMITATE_PROTOCOL)
+		fprintf(f, "imitate_protocol=%s\n", dev->imitate_protocol);
 
 	for_each_wgpeer(dev, peer) {
 		key_to_hex(hex, peer->public_key);
@@ -313,6 +315,14 @@ static int userspace_get_device(struct wgdevice **out, const char *iface)
 			}
 
 			dev->flags |= WGDEVICE_HAS_I5;
+		} else if (!peer && !strcmp(key, "imitate_protocol")) {
+			dev->imitate_protocol = strdup(value);
+			if (!dev->imitate_protocol) {
+				ret = -ENOMEM;
+				goto err;
+			}
+
+			dev->flags |= WGDEVICE_HAS_IMITATE_PROTOCOL;
 		} else if (!strcmp(key, "public_key")) {
 			struct wgpeer *new_peer = calloc(1, sizeof(*new_peer));
 

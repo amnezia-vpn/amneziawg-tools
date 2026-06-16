@@ -139,6 +139,11 @@ randomly.
 .IP \(bu
 FwMark \(em a 32-bit fwmark for outgoing packets. If set to 0 or "off", this
 option is disabled. May be specified in hexadecimal by prepending "0x". Optional.
+.IP \(bu
+ImitateProtocol \(em the protocol whose traffic the obfuscation should imitate,
+one of "none", "quic", "dns", "stun", or "sip". Only supported by the userspace
+(amneziawg-go) implementation; ignored when running against the kernel module.
+Optional.
 .P
 The \fIPeer\fP sections may contain the following fields:
 .IP \(bu

@@ -597,6 +597,10 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 			ret = parse_awg_string(&ctx->device->i5, "I5", value);
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_I5;
+		} else if (key_match("ImitateProtocol")) {
+			ret = parse_awg_string(&ctx->device->imitate_protocol, "ImitateProtocol", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_IMITATE_PROTOCOL;
 		} else {
 			goto error;
 		}
@@ -903,6 +907,13 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 				goto error;
 
 			device->flags |= WGDEVICE_HAS_I5;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "imitate_protocol") && argc >= 2 && !peer) {
+			if (!parse_awg_string(&device->imitate_protocol, "imitate_protocol", argv[1]))
+				goto error;
+
+			device->flags |= WGDEVICE_HAS_IMITATE_PROTOCOL;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "peer") && argc >= 2) {
