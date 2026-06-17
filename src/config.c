@@ -417,28 +417,6 @@ err:
 	return false;
 }
 
-static inline bool parse_awg_string(char **device_value, const char *name, const char *value) {
-    size_t len = strlen(value);
-	if (!len) {
-		*device_value = NULL;
-		return true;
-	}
-
-    if (len >= MAX_AWG_STRING_LEN) {
-		fprintf(stderr, "Unable to process string for: %s; longer than: %d\n", name, MAX_AWG_STRING_LEN);
-		return false;
-    }
-
-    *device_value = strdup(value);
-
-	if (*device_value == NULL) {
-		perror("strdup");
-		return false;
-	}
-
-    return true;
-}
-
 static inline bool parse_uint16(uint16_t *device_value, const char *name, const char *value) {
 
 	if (!strlen(value)) {
@@ -562,40 +540,31 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_S4;
 		} else if (key_match("H1")) {
-			ret = parse_awg_string(&ctx->device->init_packet_magic_header, "H1", value);
-			if (ret)
+			if ((ctx->device->init_packet_magic_header = strdup(value)) == NULL)
 				ctx->device->flags |= WGDEVICE_HAS_H1;
 		} else if (key_match("H2")) {
-			ret = parse_awg_string(&ctx->device->response_packet_magic_header, "H2", value);
-			if (ret)
+			if ((ctx->device->response_packet_magic_header = strdup(value)) == NULL)
 				ctx->device->flags |= WGDEVICE_HAS_H2;
 		} else if (key_match("H3")) {
-			ret = parse_awg_string(&ctx->device->underload_packet_magic_header, "H3", value);
-			if (ret)
+			if ((ctx->device->underload_packet_magic_header = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_H3;
 		} else if (key_match("H4")) {
-			ret = parse_awg_string(&ctx->device->transport_packet_magic_header, "H4", value);
-			if (ret)
+			if ((ctx->device->transport_packet_magic_header = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_H4;
 		} else if (key_match("I1")) {
-			ret = parse_awg_string(&ctx->device->i1, "I1", value);
-			if (ret)
+			if ((ctx->device->i1 = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_I1;
 		} else if (key_match("I2")) {
-			ret = parse_awg_string(&ctx->device->i2, "I2", value);
-			if (ret)
+			if ((ctx->device->i2 = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_I2;
 		} else if (key_match("I3")) {
-			ret = parse_awg_string(&ctx->device->i3, "I3", value);
-			if (ret)
+			if ((ctx->device->i3 = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_I3;
 		} else if (key_match("I4")) {
-			ret = parse_awg_string(&ctx->device->i4, "I4", value);
-			if (ret)
+			if ((ctx->device->i4 = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_I4;
 		} else if (key_match("I5")) {
-			ret = parse_awg_string(&ctx->device->i5, "I5", value);
-			if (ret)
+			if ((ctx->device->i5 = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_I5;
 		} else {
 			goto error;
@@ -843,66 +812,48 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "h1") && argc >= 2 && !peer) {
-			if (!parse_awg_string(&device->init_packet_magic_header, "h1", argv[1]))
-				goto error;
-
-			device->flags |= WGDEVICE_HAS_H1;
+			if ((device->init_packet_magic_header = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_H1;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "h2") && argc >= 2 && !peer) {
-			if (!parse_awg_string(&device->response_packet_magic_header, "h2", argv[1]))
-				goto error;
-
-			device->flags |= WGDEVICE_HAS_H2;
+			if ((device->response_packet_magic_header = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_H2;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "h3") && argc >= 2 && !peer) {
-			if (!parse_awg_string(&device->underload_packet_magic_header, "h3", argv[1]))
-				goto error;
-
-			device->flags |= WGDEVICE_HAS_H3;
+			if ((device->underload_packet_magic_header = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_H3;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "h4") && argc >= 2 && !peer) {
-			if (!parse_awg_string(&device->transport_packet_magic_header, "h4", argv[1]))
-				goto error;
-
-			device->flags |= WGDEVICE_HAS_H4;
+			if ((device->transport_packet_magic_header = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_H4;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "i1") && argc >= 2 && !peer) {
-			if (!parse_awg_string(&device->i1, "i1", argv[1]))
-				goto error;
-
-			device->flags |= WGDEVICE_HAS_I1;
+			if ((device->i1 = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_I1;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "i2") && argc >= 2 && !peer) {
-			if (!parse_awg_string(&device->i2, "i2", argv[1]))
-				goto error;
-
-			device->flags |= WGDEVICE_HAS_I2;
+			if ((device->i2 = strdup(argv[1]))!= NULL)
+				device->flags |= WGDEVICE_HAS_I2;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "i3") && argc >= 2 && !peer) {
-			if (!parse_awg_string(&device->i3, "i3", argv[1]))
-				goto error;
-
-			device->flags |= WGDEVICE_HAS_I3;
+			if ((device->i3 = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_I3;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "i4") && argc >= 2 && !peer) {
-			if (!parse_awg_string(&device->i4, "i4", argv[1]))
-				goto error;
-
-			device->flags |= WGDEVICE_HAS_I4;
+			if ((device->i4 = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_I4;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "i5") && argc >= 2 && !peer) {
-			if (!parse_awg_string(&device->i5, "i5", argv[1]))
-				goto error;
-
-			device->flags |= WGDEVICE_HAS_I5;
+			if ((device->i5 = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_I5;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "peer") && argc >= 2) {

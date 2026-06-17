@@ -25,34 +25,27 @@
 
 #define IPC_SUPPORTS_KERNEL_INTERFACE
 
-void put_magic_header_attr(uint8_t version, struct nlmsghdr *nlh, int attr_name, char *header_field)
-{
-	if (version >= 2) {
-		mnl_attr_put_strz(nlh, attr_name, header_field);
-	} else {
-		uint32_t magic_header = strtoul(header_field, NULL, 10);
-		mnl_attr_put_u32(nlh, attr_name, magic_header);
-	}
-}
+#define PUT_MAGIC_HEADER(nlh, version, num_var, attr, var) do {\
+	if (version < 2) {\
+		num_var = strtoul(var, NULL, 10);\
+		mnl_attr_put_u32(nlh, attr, num_var);\
+	} else {\
+		mnl_attr_put_strz(nlh, attr, var);\
+	}\
+} while(0)
 
-#define GET_MAGIC_HEADER(attr, magic_header, attr_name)\
+#define GET_MAGIC_HEADER(attr, num_var, attr_flag, var) do {\
 	if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {\
-		uint32_t numeric_value = mnl_attr_get_u32(attr);\
-		magic_header = malloc(12);\
-		if (!magic_header) {\
-			perror("malloc");\
-			return MNL_CB_ERROR;\
+		num_var = mnl_attr_get_u32(attr);\
+		if ((var = malloc(12)) != NULL) {\
+			snprintf(var, 12, "%u", num_var);\
+			device->flags |= attr_flag;\
 		}\
-		snprintf(magic_header, 12, "%u", numeric_value);\
-		device->flags |= attr_name;\
 	} else if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {\
-		magic_header = strdup(mnl_attr_get_str(attr));\
-		if (!magic_header) {\
-			perror("strdup");\
-			return MNL_CB_ERROR;\
-		}\
-		device->flags |= attr_name;\
-	}
+		if ((var = strdup(mnl_attr_get_str(attr))) != NULL)\
+			device->flags |= attr_flag;\
+	}\
+} while(0)
 
 #define SOCKET_BUFFER_SIZE (mnl_ideal_socket_buffer_size())
 
@@ -176,6 +169,7 @@ static int kernel_set_device(struct wgdevice *dev)
 	struct nlattr *peers_nest, *peer_nest, *allowedips_nest, *allowedip_nest;
 	struct nlmsghdr *nlh;
 	struct mnlg_socket *nlg;
+	uint32_t num;
 
 	nlg = mnlg_socket_open(WG_GENL_NAME);
 	if (!nlg)
@@ -207,13 +201,13 @@ again:
 		if (dev->flags & WGDEVICE_HAS_S4)
 			mnl_attr_put_u16(nlh, WGDEVICE_A_S4, dev->transport_packet_junk_size);
 		if (dev->flags & WGDEVICE_HAS_H1)
-			put_magic_header_attr(nlg->version, nlh, WGDEVICE_A_H1, dev->init_packet_magic_header);
+			PUT_MAGIC_HEADER(nlh, nlg->version, num, WGDEVICE_A_H1, dev->init_packet_magic_header);
 		if (dev->flags & WGDEVICE_HAS_H2)
-			put_magic_header_attr(nlg->version, nlh, WGDEVICE_A_H2, dev->response_packet_magic_header);
+			PUT_MAGIC_HEADER(nlh, nlg->version, num, WGDEVICE_A_H2, dev->response_packet_magic_header);
 		if (dev->flags & WGDEVICE_HAS_H3)
-			put_magic_header_attr(nlg->version, nlh, WGDEVICE_A_H3, dev->underload_packet_magic_header);
+			PUT_MAGIC_HEADER(nlh, nlg->version, num, WGDEVICE_A_H3, dev->underload_packet_magic_header);
 		if (dev->flags & WGDEVICE_HAS_H4)
-			put_magic_header_attr(nlg->version, nlh, WGDEVICE_A_H4, dev->transport_packet_magic_header);
+			PUT_MAGIC_HEADER(nlh, nlg->version, num, WGDEVICE_A_H4, dev->transport_packet_magic_header);
 		if (dev->flags & WGDEVICE_HAS_I1)
 			mnl_attr_put_strz(nlh, WGDEVICE_A_I1, dev->i1);
 		if (dev->flags & WGDEVICE_HAS_I2)
@@ -490,6 +484,7 @@ static int parse_peers(const struct nlattr *attr, void *data)
 static int parse_device(const struct nlattr *attr, void *data)
 {
 	struct wgdevice *device = data;
+	uint32_t num;
 
 	switch (mnl_attr_get_type(attr)) {
 	case WGDEVICE_A_UNSPEC:
@@ -569,70 +564,45 @@ static int parse_device(const struct nlattr *attr, void *data)
 		}
 		break;
 	case WGDEVICE_A_H1:
-		GET_MAGIC_HEADER(attr, device->init_packet_magic_header, WGDEVICE_HAS_H1);
+		GET_MAGIC_HEADER(attr, num, WGDEVICE_HAS_H1, device->init_packet_magic_header);
 		break;
 	case WGDEVICE_A_H2:
-		GET_MAGIC_HEADER(attr, device->response_packet_magic_header, WGDEVICE_HAS_H2);
+		GET_MAGIC_HEADER(attr, num, WGDEVICE_HAS_H2, device->response_packet_magic_header);
 		break;
 	case WGDEVICE_A_H3:
-		GET_MAGIC_HEADER(attr, device->underload_packet_magic_header, WGDEVICE_HAS_H3);
+		GET_MAGIC_HEADER(attr, num, WGDEVICE_HAS_H3, device->underload_packet_magic_header);
 		break;
 	case WGDEVICE_A_H4:
-		GET_MAGIC_HEADER(attr, device->transport_packet_magic_header, WGDEVICE_HAS_H4);
+		GET_MAGIC_HEADER(attr, num, WGDEVICE_HAS_H4, device->transport_packet_magic_header);
 		break;
 	case WGDEVICE_A_I1:
 		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
-			device->i1 = strdup(mnl_attr_get_str(attr));
-			if (!device->i1) {
-				perror("strdup");
-				return MNL_CB_ERROR;
-			}
-
-			device->flags |= WGDEVICE_HAS_I1;
+			if ((device->i1 = strdup(mnl_attr_get_str(attr))) != NULL)
+				device->flags |= WGDEVICE_HAS_I1;
 		}
 		break;
 	case WGDEVICE_A_I2:
 		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
-			device->i2 = strdup(mnl_attr_get_str(attr));
-			if (!device->i2) {
-				perror("strdup");
-				return MNL_CB_ERROR;
-			}
-
-			device->flags |= WGDEVICE_HAS_I2;
+			if ((device->i2 = strdup(mnl_attr_get_str(attr))) != NULL)
+				device->flags |= WGDEVICE_HAS_I2;
 		}
 		break;
 	case WGDEVICE_A_I3:
 		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
-			device->i3 = strdup(mnl_attr_get_str(attr));
-			if (!device->i3) {
-				perror("strdup");
-				return MNL_CB_ERROR;
-			}
-
-			device->flags |= WGDEVICE_HAS_I3;
+			if ((device->i3 = strdup(mnl_attr_get_str(attr))) != NULL)
+				device->flags |= WGDEVICE_HAS_I3;
 		}
 		break;
 	case WGDEVICE_A_I4:
 		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
-			device->i4 = strdup(mnl_attr_get_str(attr));
-			if (!device->i4) {
-				perror("strdup");
-				return MNL_CB_ERROR;
-			}
-
-			device->flags |= WGDEVICE_HAS_I4;
+			if ((device->i4 = strdup(mnl_attr_get_str(attr))) != NULL)
+				device->flags |= WGDEVICE_HAS_I4;
 		}
 		break;
 	case WGDEVICE_A_I5:
 		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
-			device->i5 = strdup(mnl_attr_get_str(attr));
-			if (!device->i5) {
-				perror("strdup");
-				return MNL_CB_ERROR;
-			}
-
-			device->flags |= WGDEVICE_HAS_I5;
+			if ((device->i5 = strdup(mnl_attr_get_str(attr))) != NULL)
+				device->flags |= WGDEVICE_HAS_I5;
 		}
 		break;
 	}
