@@ -234,13 +234,13 @@ static void pretty_print(struct wgdevice *device)
 		terminal_printf("  " TERMINAL_BOLD "s3" TERMINAL_RESET ": %u\n", device->cookie_reply_packet_junk_size);
 	if (device->transport_packet_junk_size)
 		terminal_printf("  " TERMINAL_BOLD "s4" TERMINAL_RESET ": %u\n", device->transport_packet_junk_size);
-	if (device->init_packet_magic_header)
+	if (strcmp(device->init_packet_magic_header, "1"))
 		terminal_printf("  " TERMINAL_BOLD "h1" TERMINAL_RESET ": %s\n", device->init_packet_magic_header);
-	if (device->response_packet_magic_header)
+	if (strcmp(device->response_packet_magic_header, "2"))
 		terminal_printf("  " TERMINAL_BOLD "h2" TERMINAL_RESET ": %s\n", device->response_packet_magic_header);
-	if (device->underload_packet_magic_header)
+	if (strcmp(device->underload_packet_magic_header, "3"))
 		terminal_printf("  " TERMINAL_BOLD "h3" TERMINAL_RESET ": %s\n", device->underload_packet_magic_header);
-	if (device->transport_packet_magic_header)
+	if (strcmp(device->transport_packet_magic_header, "4"))
 		terminal_printf("  " TERMINAL_BOLD "h4" TERMINAL_RESET ": %s\n", device->transport_packet_magic_header);
 	if (device->i1)
 		terminal_printf("  " TERMINAL_BOLD "i1" TERMINAL_RESET ": %s\n", device->i1);
@@ -300,24 +300,15 @@ static void dump_print(struct wgdevice *device, bool with_interface)
 	printf("%u\t", device->response_packet_junk_size);
 	printf("%u\t", device->cookie_reply_packet_junk_size);
 	printf("%u\t", device->transport_packet_junk_size);
-	fputs(device->init_packet_magic_header ? device->init_packet_magic_header : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->response_packet_magic_header ? device->response_packet_magic_header : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->underload_packet_magic_header ? device->underload_packet_magic_header : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->transport_packet_magic_header ? device->transport_packet_magic_header : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->i1 ? device->i1 : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->i2 ? device->i2 : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->i3 ? device->i3 : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->i4 ? device->i4 : "(null)", stdout);
-	fputc('\t', stdout);
-	fputs(device->i5 ? device->i5 : "(null)", stdout);
-	fputc('\t', stdout);
+	printf("%s\t", device->init_packet_magic_header);
+	printf("%s\t", device->response_packet_magic_header);
+	printf("%s\t", device->underload_packet_magic_header);
+	printf("%s\t", device->transport_packet_magic_header);
+	printf("%s\t", device->i1 ? device->i1 : "(null)");
+	printf("%s\t", device->i2 ? device->i2 : "(null)");
+	printf("%s\t", device->i3 ? device->i3 : "(null)");
+	printf("%s\t", device->i4 ? device->i4 : "(null)");
+	printf("%s\t", device->i5 ? device->i5 : "(null)");
 
 	if (device->fwmark)
 		printf("0x%x\n", device->fwmark);
