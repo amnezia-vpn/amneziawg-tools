@@ -24,10 +24,6 @@
 #define WG_KEY_LEN 32
 #endif
 
-#ifndef MAX_AWG_STRING_LEN
-#define MAX_AWG_STRING_LEN 5 * 1024
-#endif
-
 /* Cross platform __kernel_timespec */
 struct timespec64 {
 	int64_t tv_sec;
