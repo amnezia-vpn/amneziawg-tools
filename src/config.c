@@ -540,10 +540,10 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_S4;
 		} else if (key_match("H1")) {
-			if ((ctx->device->init_packet_magic_header = strdup(value)) == NULL)
+			if ((ctx->device->init_packet_magic_header = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_H1;
 		} else if (key_match("H2")) {
-			if ((ctx->device->response_packet_magic_header = strdup(value)) == NULL)
+			if ((ctx->device->response_packet_magic_header = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_H2;
 		} else if (key_match("H3")) {
 			if ((ctx->device->underload_packet_magic_header = strdup(value)) != NULL)
