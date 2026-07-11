@@ -33,7 +33,7 @@ static const char *get_value(const char *line, const char *key)
 	size_t linelen = strlen(line);
 	size_t keylen = strlen(key);
 
-	if (keylen >= linelen)
+	if (keylen > linelen)
 		return NULL;
 
 	if (strncasecmp(line, key, keylen))
