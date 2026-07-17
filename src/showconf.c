@@ -78,6 +78,14 @@ int showconf_main(int argc, const char *argv[])
 		printf("I4 = %s\n", device->i4);
 	if (device->flags & WGDEVICE_HAS_I5)
 		printf("I5 = %s\n", device->i5);
+	if (device->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY) {
+		key_to_base64(base64, device->header_protection_key);
+		printf("HeaderProtectionKey = %s\n", base64);
+	}
+	if (device->flags & WGDEVICE_HAS_RANDOM_TRAILING_SIZE_MAX)
+		printf("RandomTrailingSizeMax = %d\n", device->random_trailing_size_max);
+	if (device->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
+		printf("RekeyAfterTime = %s\n", device->rekey_after_time);
 
 	printf("\n");
 	for_each_wgpeer(device, peer) {

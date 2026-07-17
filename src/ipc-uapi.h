@@ -84,6 +84,14 @@ static int userspace_set_device(struct wgdevice *dev)
 		fprintf(f, "i4=%s\n", dev->i4);
 	if (dev->flags & WGDEVICE_HAS_I5)
 		fprintf(f, "i5=%s\n", dev->i5);
+	if (dev->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY) {
+		key_to_hex(hex, dev->header_protection_key);
+		fprintf(f, "header_protection_key=%s\n", hex);
+	}
+	if (dev->flags & WGDEVICE_HAS_RANDOM_TRAILING_SIZE_MAX)
+		fprintf(f, "random_trailing_size_max=%d\n", dev->random_trailing_size_max);
+	if (dev->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
+		fprintf(f, "rekey_after_time=%s\n", dev->rekey_after_time);
 
 	for_each_wgpeer(dev, peer) {
 		key_to_hex(hex, peer->public_key);
@@ -268,6 +276,17 @@ static int userspace_get_device(struct wgdevice **out, const char *iface)
 		} else if (!peer && !strcmp(key, "i5")) {
 			if ((dev->i5 = strdup(value)) != NULL)
 				dev->flags |= WGDEVICE_HAS_I5;
+		} else if (!peer && !strcmp(key, "header_protection_key")) {
+			if (!key_from_hex(dev->header_protection_key, value))
+				break;
+			if (!key_is_zero(dev->header_protection_key))
+				dev->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
+		} else if (!peer && !strcmp(key, "random_trailing_size_max")) {
+			dev->random_trailing_size_max = NUM(0xffffU);
+			dev->flags |= WGDEVICE_HAS_RANDOM_TRAILING_SIZE_MAX;
+		} else if (!peer && !strcmp(key, "rekey_after_time")) {
+			if ((dev->rekey_after_time = strdup(value)) != NULL)
+				dev->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
 		} else if (!strcmp(key, "public_key")) {
 			struct wgpeer *new_peer = calloc(1, sizeof(*new_peer));
 

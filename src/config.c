@@ -566,6 +566,17 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 		} else if (key_match("I5")) {
 			if ((ctx->device->i5 = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_I5;
+		} else if (key_match("HeaderProtectionKey")) {
+			ret = parse_key(ctx->device->header_protection_key, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
+		} else if (key_match("RandomTrailingSizeMax")) {
+			ret = parse_uint16(&ctx->device->random_trailing_size_max, "RandomTrailingSizeMax", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_RANDOM_TRAILING_SIZE_MAX;
+		} else if (key_match("RekeyAfterTime")) {
+			if ((ctx->device->rekey_after_time = strdup(value)) != NULL)
+				ctx->device->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
 		} else {
 			goto error;
 		}
@@ -854,6 +865,23 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 		} else if (!strcmp(argv[0], "i5") && argc >= 2 && !peer) {
 			if ((device->i5 = strdup(argv[1])) != NULL)
 				device->flags |= WGDEVICE_HAS_I5;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "header-protection-key") && argc >= 2 && !peer) {
+			if (!parse_keyfile(device->header_protection_key, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "random-trailing-size-max") && argc >= 2 && !peer) {
+			if (!parse_uint16(&device->random_trailing_size_max, "random-trailing-size-max", argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_RANDOM_TRAILING_SIZE_MAX;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "rekey-after-time") && argc >= 2 && !peer) {
+			if ((device->rekey_after_time = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "peer") && argc >= 2) {

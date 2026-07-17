@@ -92,7 +92,10 @@ enum {
 	WGDEVICE_HAS_I2 = 1U << 17,
 	WGDEVICE_HAS_I3 = 1U << 18,
 	WGDEVICE_HAS_I4 = 1U << 19,
-	WGDEVICE_HAS_I5 = 1U << 20
+	WGDEVICE_HAS_I5 = 1U << 20,
+	WGDEVICE_HAS_HEADER_PROTECTION_KEY = 1U << 21,
+	WGDEVICE_HAS_RANDOM_TRAILING_SIZE_MAX = 1U << 22,
+	WGDEVICE_HAS_REKEY_AFTER_TIME = 1U << 23,
 };
 
 struct wgdevice {
@@ -125,6 +128,9 @@ struct wgdevice {
 	char*    i3;
 	char*    i4;
 	char*    i5;
+	uint8_t  header_protection_key[WG_KEY_LEN];
+	uint16_t random_trailing_size_max;
+	char* 	 rekey_after_time;
 };
 
 #define for_each_wgpeer(__dev, __peer) for ((__peer) = (__dev)->first_peer; (__peer); (__peer) = (__peer)->next_peer)
@@ -149,6 +155,7 @@ static inline void free_wgdevice(struct wgdevice *dev)
 	free(dev->i3);
 	free(dev->i4);
 	free(dev->i5);
+	free(dev->rekey_after_time);
 
 	free(dev);
 }
