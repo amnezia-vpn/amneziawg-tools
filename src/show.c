@@ -202,7 +202,7 @@ static char *bytes(uint64_t b)
 static const char *COMMAND_NAME;
 static void show_usage(void)
 {
-	fprintf(stderr, "Usage: %s %s { <interface> | all | interfaces } [public-key | private-key | listen-port | fwmark | peers | preshared-keys | endpoints | allowed-ips | latest-handshakes | transfer | persistent-keepalive | dump | jc | jmin | jmax | s1 | s2 | s3 | s4 | h1 | h2 | h3 | h4 | i1 | i2 | i3 | i4 | i5 | header-protection-key | random-trailing-size-max | rekey-after-time]\n", PROG_NAME, COMMAND_NAME);
+	fprintf(stderr, "Usage: %s %s { <interface> | all | interfaces } [public-key | private-key | listen-port | fwmark | peers | preshared-keys | endpoints | allowed-ips | latest-handshakes | transfer | persistent-keepalive | dump | jc | jmin | jmax | s1 | s2 | s3 | s4 | h1 | h2 | h3 | h4 | i1 | i2 | i3 | i4 | i5 | header-protection-key | content-padding-multiple | rekey-after-time]\n", PROG_NAME, COMMAND_NAME);
 }
 
 static void pretty_print(struct wgdevice *device)
@@ -254,8 +254,8 @@ static void pretty_print(struct wgdevice *device)
 		terminal_printf("  " TERMINAL_BOLD "i5" TERMINAL_RESET ": %s\n", device->i5);
 	if (device->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY)
 		terminal_printf("  " TERMINAL_BOLD "header protection key" TERMINAL_RESET ": %s\n", key(device->header_protection_key));
-	if (device->flags & WGDEVICE_HAS_RANDOM_TRAILING_SIZE_MAX)
-		terminal_printf("  " TERMINAL_BOLD "random trailing size max" TERMINAL_RESET ": %d\n", device->random_trailing_size_max);
+	if (device->flags & WGDEVICE_HAS_CONTENT_PADDING_MULTIPLE)
+		terminal_printf("  " TERMINAL_BOLD "content padding multiple" TERMINAL_RESET ": %s\n", device->content_padding_multiple);
 	if (device->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
 		terminal_printf("  " TERMINAL_BOLD "rekey after time" TERMINAL_RESET ": %s\n", device->rekey_after_time);
 
@@ -316,7 +316,7 @@ static void dump_print(struct wgdevice *device, bool with_interface)
 	printf("%s\t", device->i4 ? device->i4 : "(null)");
 	printf("%s\t", device->i5 ? device->i5 : "(null)");
 	printf("%s\t", maybe_key(device->header_protection_key, device->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY));
-	printf("%d\t", device->random_trailing_size_max);
+	printf("%s\t", device->content_padding_multiple);
 	printf("%s\t", device->rekey_after_time);
 
 	if (device->fwmark)
@@ -438,10 +438,10 @@ static bool ugly_print(struct wgdevice *device, const char *param, bool with_int
 		if (with_interface)
 			printf("%s\t", device->name);
 		printf("%s\n", maybe_key(device->header_protection_key, WGDEVICE_HAS_HEADER_PROTECTION_KEY));
-	} else if (!strcmp(param, "random-trailing-size-max")) {
+	} else if (!strcmp(param, "content-padding-multiple")) {
 		if (with_interface)
 			printf("%s\t", device->name);
-		printf("%d\n", device->random_trailing_size_max);
+		printf("%s\n", device->content_padding_multiple);
 	} else if (!strcmp(param, "rekey-after-time")) {
 		if (with_interface)
 			printf("%s\t", device->name);

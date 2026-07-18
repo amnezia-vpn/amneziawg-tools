@@ -570,10 +570,9 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 			ret = parse_key(ctx->device->header_protection_key, value);
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
-		} else if (key_match("RandomTrailingSizeMax")) {
-			ret = parse_uint16(&ctx->device->random_trailing_size_max, "RandomTrailingSizeMax", value);
-			if (ret)
-				ctx->device->flags |= WGDEVICE_HAS_RANDOM_TRAILING_SIZE_MAX;
+		} else if (key_match("ContentPaddingMultiple")) {
+			if ((ctx->device->content_padding_multiple = strdup(value)) != NULL)
+				ctx->device->flags |= WGDEVICE_HAS_CONTENT_PADDING_MULTIPLE;
 		} else if (key_match("RekeyAfterTime")) {
 			if ((ctx->device->rekey_after_time = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
@@ -873,10 +872,9 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 			device->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
 			argv += 2;
 			argc -= 2;
-		} else if (!strcmp(argv[0], "random-trailing-size-max") && argc >= 2 && !peer) {
-			if (!parse_uint16(&device->random_trailing_size_max, "random-trailing-size-max", argv[1]))
-				goto error;
-			device->flags |= WGDEVICE_HAS_RANDOM_TRAILING_SIZE_MAX;
+		} else if (!strcmp(argv[0], "content-padding-multiple") && argc >= 2 && !peer) {
+			if((device->content_padding_multiple = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_CONTENT_PADDING_MULTIPLE;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "rekey-after-time") && argc >= 2 && !peer) {
