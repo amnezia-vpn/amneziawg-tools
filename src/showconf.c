@@ -82,8 +82,8 @@ int showconf_main(int argc, const char *argv[])
 		key_to_base64(base64, device->header_protection_key);
 		printf("HeaderProtectionKey = %s\n", base64);
 	}
-	if (device->flags & WGDEVICE_HAS_CONTENT_PADDING_MULTIPLE)
-		printf("ContentPaddingMultiple = %s\n", device->content_padding_multiple);
+	if (device->flags & WGDEVICE_HAS_CONTENT_PADDING_ADDITION)
+		printf("ContentPaddingAddition = %s\n", device->content_padding_addition);
 	if (device->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
 		printf("RekeyAfterTime = %s\n", device->rekey_after_time);
 

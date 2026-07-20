@@ -88,8 +88,8 @@ static int userspace_set_device(struct wgdevice *dev)
 		key_to_hex(hex, dev->header_protection_key);
 		fprintf(f, "header_protection_key=%s\n", hex);
 	}
-	if (dev->flags & WGDEVICE_HAS_CONTENT_PADDING_MULTIPLE)
-		fprintf(f, "content_padding_multiple=%s\n", dev->content_padding_multiple);
+	if (dev->flags & WGDEVICE_HAS_CONTENT_PADDING_ADDITION)
+		fprintf(f, "content_padding_addition=%s\n", dev->content_padding_addition);
 	if (dev->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
 		fprintf(f, "rekey_after_time=%s\n", dev->rekey_after_time);
 
@@ -281,9 +281,9 @@ static int userspace_get_device(struct wgdevice **out, const char *iface)
 				break;
 			if (!key_is_zero(dev->header_protection_key))
 				dev->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
-		} else if (!peer && !strcmp(key, "content_padding_multiple")) {
-			if ((dev->content_padding_multiple = strdup(value)) != NULL)
-				dev->flags |= WGDEVICE_HAS_CONTENT_PADDING_MULTIPLE;
+		} else if (!peer && !strcmp(key, "content_padding_addition")) {
+			if ((dev->content_padding_addition = strdup(value)) != NULL)
+				dev->flags |= WGDEVICE_HAS_CONTENT_PADDING_ADDITION;
 		} else if (!peer && !strcmp(key, "rekey_after_time")) {
 			if ((dev->rekey_after_time = strdup(value)) != NULL)
 				dev->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;

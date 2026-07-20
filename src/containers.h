@@ -94,7 +94,7 @@ enum {
 	WGDEVICE_HAS_I4 = 1U << 19,
 	WGDEVICE_HAS_I5 = 1U << 20,
 	WGDEVICE_HAS_HEADER_PROTECTION_KEY = 1U << 21,
-	WGDEVICE_HAS_CONTENT_PADDING_MULTIPLE = 1U << 22,
+	WGDEVICE_HAS_CONTENT_PADDING_ADDITION = 1U << 22,
 	WGDEVICE_HAS_REKEY_AFTER_TIME = 1U << 23,
 };
 
@@ -129,7 +129,7 @@ struct wgdevice {
 	char*    i4;
 	char*    i5;
 	uint8_t  header_protection_key[WG_KEY_LEN];
-	char* 	 content_padding_multiple;
+	char* 	 content_padding_addition;
 	char* 	 rekey_after_time;
 };
 
@@ -155,7 +155,7 @@ static inline void free_wgdevice(struct wgdevice *dev)
 	free(dev->i3);
 	free(dev->i4);
 	free(dev->i5);
-	free(dev->content_padding_multiple);
+	free(dev->content_padding_addition);
 	free(dev->rekey_after_time);
 
 	free(dev);
