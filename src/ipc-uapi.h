@@ -92,6 +92,14 @@ static int userspace_set_device(struct wgdevice *dev)
 		fprintf(f, "content_padding_addition=%s\n", dev->content_padding_addition);
 	if (dev->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
 		fprintf(f, "rekey_after_time=%s\n", dev->rekey_after_time);
+	if (dev->flags & WGDEVICE_HAS_REKEY_TIMEOUT)
+		fprintf(f, "rekey_timeout=%s", dev->rekey_timeout);
+	if (dev->flags & WGDEVICE_HAS_REJECT_AFTER_TIME)
+		fprintf(f, "reject_after_time=%s", dev->reject_after_time);
+	if (dev->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
+		fprintf(f, "keepalive_timeout=%s", dev->keepalive_timeout);
+	if (dev->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
+		fprintf(f, "max_handshake_attemps=%s", dev->max_handshake_attemps);
 
 	for_each_wgpeer(dev, peer) {
 		key_to_hex(hex, peer->public_key);
@@ -287,6 +295,18 @@ static int userspace_get_device(struct wgdevice **out, const char *iface)
 		} else if (!peer && !strcmp(key, "rekey_after_time")) {
 			if ((dev->rekey_after_time = strdup(value)) != NULL)
 				dev->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
+		} else if (!peer && !strcmp(key, "rekey_timeout")) {
+			if ((dev->rekey_timeout = strdup(value)) != NULL)
+				dev->flags |= WGDEVICE_HAS_REKEY_TIMEOUT;
+		} else if (!peer && !strcmp(key, "reject_after_time")) {
+			if ((dev->reject_after_time = strdup(value)) != NULL)
+				dev->flags |= WGDEVICE_HAS_REJECT_AFTER_TIME;
+		} else if (!peer && !strcmp(key, "keepalive_timeout")) {
+			if ((dev->keepalive_timeout = strdup(value)) != NULL)
+				dev->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
+		} else if (!peer && !strcmp(key, "max_handshake_attemps")) {
+			if ((dev->max_handshake_attemps = strdup(value)) != NULL)
+				dev->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
 		} else if (!strcmp(key, "public_key")) {
 			struct wgpeer *new_peer = calloc(1, sizeof(*new_peer));
 

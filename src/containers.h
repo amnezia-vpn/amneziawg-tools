@@ -96,6 +96,10 @@ enum {
 	WGDEVICE_HAS_HEADER_PROTECTION_KEY = 1U << 21,
 	WGDEVICE_HAS_CONTENT_PADDING_ADDITION = 1U << 22,
 	WGDEVICE_HAS_REKEY_AFTER_TIME = 1U << 23,
+	WGDEVICE_HAS_REKEY_TIMEOUT = 1U << 24,
+	WGDEVICE_HAS_REJECT_AFTER_TIME = 1U << 25,
+	WGDEVICE_HAS_KEEPALIVE_TIMEOUT = 1U << 26,
+	WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS = 1U << 27,
 };
 
 struct wgdevice {
@@ -131,6 +135,10 @@ struct wgdevice {
 	uint8_t  header_protection_key[WG_KEY_LEN];
 	char* 	 content_padding_addition;
 	char* 	 rekey_after_time;
+	char*	 rekey_timeout;
+	char*	 reject_after_time;
+	char*	 keepalive_timeout;
+	char*	 max_handshake_attemps;
 };
 
 #define for_each_wgpeer(__dev, __peer) for ((__peer) = (__dev)->first_peer; (__peer); (__peer) = (__peer)->next_peer)
@@ -157,6 +165,10 @@ static inline void free_wgdevice(struct wgdevice *dev)
 	free(dev->i5);
 	free(dev->content_padding_addition);
 	free(dev->rekey_after_time);
+	free(dev->rekey_timeout);
+	free(dev->reject_after_time);
+	free(dev->keepalive_timeout);
+	free(dev->max_handshake_attemps);
 
 	free(dev);
 }

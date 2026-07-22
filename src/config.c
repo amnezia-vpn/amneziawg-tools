@@ -576,6 +576,18 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 		} else if (key_match("RekeyAfterTime")) {
 			if ((ctx->device->rekey_after_time = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
+		} else if (key_match("RekeyTimeout")) {
+			if ((ctx->device->rekey_timeout = strdup(value)) != NULL)
+				ctx->device->flags |= WGDEVICE_HAS_REKEY_TIMEOUT;
+		} else if (key_match("RejectAfterTime")) {
+			if ((ctx->device->reject_after_time = strdup(value)) != NULL)
+				ctx->device->flags |= WGDEVICE_HAS_REJECT_AFTER_TIME;
+		} else if (key_match("KeepaliveTimeout")) {
+			if ((ctx->device->keepalive_timeout = strdup(value)) != NULL)
+				ctx->device->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
+		} else if (key_match("MaxHandshakeAttempts")) {
+			if ((ctx->device->max_handshake_attemps = strdup(value)) != NULL)
+				ctx->device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
 		} else {
 			goto error;
 		}
@@ -880,6 +892,26 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 		} else if (!strcmp(argv[0], "rekey-after-time") && argc >= 2 && !peer) {
 			if ((device->rekey_after_time = strdup(argv[1])) != NULL)
 				device->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "rekey-timeout") && argc >= 2 && !peer) {
+			if ((device->rekey_timeout = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_REKEY_TIMEOUT;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "reject-after-time") && argc >= 2 && !peer) {
+			if ((device->reject_after_time = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_REJECT_AFTER_TIME;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "keepalive-timeout") && argc >= 2 && !peer) {
+			if ((device->keepalive_timeout = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "max-handshake-attemps") && argc >= 2 && !peer) {
+			if ((device->max_handshake_attemps = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "peer") && argc >= 2) {

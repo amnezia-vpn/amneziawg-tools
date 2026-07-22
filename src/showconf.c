@@ -86,6 +86,14 @@ int showconf_main(int argc, const char *argv[])
 		printf("ContentPaddingAddition = %s\n", device->content_padding_addition);
 	if (device->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
 		printf("RekeyAfterTime = %s\n", device->rekey_after_time);
+	if (device->flags & WGDEVICE_HAS_REKEY_TIMEOUT)
+		printf("RekeyTimeout = %s\n", device->rekey_timeout);
+	if (device->flags & WGDEVICE_HAS_REJECT_AFTER_TIME)
+		printf("RejectAfterTime = %s\n", device->reject_after_time);
+	if (device->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
+		printf("KeepaliveTimeout = %s\n", device->keepalive_timeout);
+	if (device->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
+		printf("MaxHandshakeAttempts = %s\n", device->max_handshake_attemps);
 
 	printf("\n");
 	for_each_wgpeer(device, peer) {
