@@ -93,13 +93,13 @@ static int userspace_set_device(struct wgdevice *dev)
 	if (dev->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
 		fprintf(f, "rekey_after_time=%s\n", dev->rekey_after_time);
 	if (dev->flags & WGDEVICE_HAS_REKEY_TIMEOUT)
-		fprintf(f, "rekey_timeout=%s", dev->rekey_timeout);
+		fprintf(f, "rekey_timeout=%s\n", dev->rekey_timeout);
 	if (dev->flags & WGDEVICE_HAS_REJECT_AFTER_TIME)
-		fprintf(f, "reject_after_time=%s", dev->reject_after_time);
+		fprintf(f, "reject_after_time=%s\n", dev->reject_after_time);
 	if (dev->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
-		fprintf(f, "keepalive_timeout=%s", dev->keepalive_timeout);
+		fprintf(f, "keepalive_timeout=%s\n", dev->keepalive_timeout);
 	if (dev->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
-		fprintf(f, "max_handshake_attemps=%s", dev->max_handshake_attemps);
+		fprintf(f, "max_handshake_attemps=%s\n", dev->max_handshake_attemps);
 
 	for_each_wgpeer(dev, peer) {
 		key_to_hex(hex, peer->public_key);
