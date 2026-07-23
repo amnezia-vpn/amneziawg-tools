@@ -130,7 +130,7 @@ static int userspace_set_device(struct wgdevice *dev)
 			}
 		}
 		if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL)
-			fprintf(f, "persistent_keepalive_interval=%u\n", peer->persistent_keepalive_interval);
+			fprintf(f, "persistent_keepalive_interval=%s\n", peer->persistent_keepalive_interval);
 		if (peer->flags & WGPEER_REPLACE_ALLOWEDIPS)
 			fprintf(f, "replace_allowed_ips=true\n");
 		for_each_wgallowedip(peer, allowedip) {
@@ -366,8 +366,8 @@ static int userspace_get_device(struct wgdevice **out, const char *iface)
 			}
 			freeaddrinfo(resolved);
 		} else if (peer && !strcmp(key, "persistent_keepalive_interval")) {
-			peer->persistent_keepalive_interval = NUM(0xffffU);
-			peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
+			if ((peer->persistent_keepalive_interval = strdup(value)) != NULL)
+				peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
 		} else if (peer && !strcmp(key, "allowed_ip")) {
 			struct wgallowedip *new_allowedip;
 			char *end, *mask = value, *ip = strsep(&mask, "/");

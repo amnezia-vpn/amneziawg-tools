@@ -173,14 +173,6 @@ static char *ago(const struct timespec64 *t)
 	return buf;
 }
 
-static char *every(uint16_t seconds)
-{
-	static char buf[1024] = "every ";
-
-	pretty_time(buf + strlen("every "), sizeof(buf) - strlen("every ") - 1, seconds);
-	return buf;
-}
-
 static char *bytes(uint64_t b)
 {
 	static char buf[1024];
@@ -290,8 +282,8 @@ static void pretty_print(struct wgdevice *device)
 			terminal_printf("%s received, ", bytes(peer->rx_bytes));
 			terminal_printf("%s sent\n", bytes(peer->tx_bytes));
 		}
-		if (peer->persistent_keepalive_interval)
-			terminal_printf("  " TERMINAL_BOLD "persistent keepalive" TERMINAL_RESET ": %s\n", every(peer->persistent_keepalive_interval));
+		if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL)
+			terminal_printf("  " TERMINAL_BOLD "persistent keepalive" TERMINAL_RESET ": %s\n", peer->persistent_keepalive_interval);
 		if (peer->next_peer)
 			terminal_printf("\n");
 	}
@@ -351,8 +343,8 @@ static void dump_print(struct wgdevice *device, bool with_interface)
 			printf("(none)\t");
 		printf("%llu\t", (unsigned long long)peer->last_handshake_time.tv_sec);
 		printf("%" PRIu64 "\t%" PRIu64 "\t", (uint64_t)peer->rx_bytes, (uint64_t)peer->tx_bytes);
-		if (peer->persistent_keepalive_interval)
-			printf("%u\n", peer->persistent_keepalive_interval);
+		if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL)
+			printf("%s\n", peer->persistent_keepalive_interval);
 		else
 			printf("off\n");
 	}
@@ -511,8 +503,8 @@ static bool ugly_print(struct wgdevice *device, const char *param, bool with_int
 		for_each_wgpeer(device, peer) {
 			if (with_interface)
 				printf("%s\t", device->name);
-			if (peer->persistent_keepalive_interval)
-				printf("%s\t%u\n", key(peer->public_key), peer->persistent_keepalive_interval);
+			if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL)
+				printf("%s\t%s\n", key(peer->public_key), peer->persistent_keepalive_interval);
 			else
 				printf("%s\toff\n", key(peer->public_key));
 		}

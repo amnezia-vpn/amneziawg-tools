@@ -63,7 +63,7 @@ struct wgpeer {
 
 	struct timespec64 last_handshake_time;
 	uint64_t rx_bytes, tx_bytes;
-	uint16_t persistent_keepalive_interval;
+	char *persistent_keepalive_interval;
 
 	bool awg;
 
@@ -151,6 +151,7 @@ static inline void free_wgdevice(struct wgdevice *dev)
 	for (struct wgpeer *peer = dev->first_peer, *np = peer ? peer->next_peer : NULL; peer; peer = np, np = peer ? peer->next_peer : NULL) {
 		for (struct wgallowedip *allowedip = peer->first_allowedip, *na = allowedip ? allowedip->next_allowedip : NULL; allowedip; allowedip = na, na = allowedip ? allowedip->next_allowedip : NULL)
 			free(allowedip);
+		free(peer->persistent_keepalive_interval);
 		free(peer);
 	}
 

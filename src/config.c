@@ -286,32 +286,6 @@ static inline bool parse_endpoint(struct sockaddr *endpoint, const char *value)
 	return true;
 }
 
-static inline bool parse_persistent_keepalive(uint16_t *interval, uint32_t *flags, const char *value)
-{
-	unsigned long ret;
-	char *end;
-
-	if (!strcasecmp(value, "off")) {
-		*interval = 0;
-		*flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
-		return true;
-	}
-
-	if (!char_is_digit(value[0]))
-		goto err;
-
-	ret = strtoul(value, &end, 10);
-	if (*end || ret > 65535)
-		goto err;
-
-	*interval = (uint16_t)ret;
-	*flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
-	return true;
-err:
-	fprintf(stderr, "Persistent keepalive interval is neither 0/off nor 1-65535: `%s'\n", value);
-	return false;
-}
-
 static bool validate_netmask(struct wgallowedip *allowedip)
 {
 	uint32_t *ip;
@@ -600,9 +574,10 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 				ctx->last_peer->flags |= WGPEER_HAS_PUBLIC_KEY;
 		} else if (key_match("AllowedIPs"))
 			ret = parse_allowedips(ctx->last_peer, &ctx->last_allowedip, value);
-		else if (key_match("PersistentKeepalive"))
-			ret = parse_persistent_keepalive(&ctx->last_peer->persistent_keepalive_interval, &ctx->last_peer->flags, value);
-		else if (key_match("PresharedKey")) {
+		else if (key_match("PersistentKeepalive")) {
+			if ((ctx->last_peer->persistent_keepalive_interval = strdup(value)) != NULL)
+				ctx->last_peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
+		} else if (key_match("PresharedKey")) {
 			ret = parse_key(ctx->last_peer->preshared_key, value);
 			if (ret)
 				ctx->last_peer->flags |= WGPEER_HAS_PRESHARED_KEY;
@@ -954,8 +929,8 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "persistent-keepalive") && argc >= 2 && peer) {
-			if (!parse_persistent_keepalive(&peer->persistent_keepalive_interval, &peer->flags, argv[1]))
-				goto error;
+			if ((peer->persistent_keepalive_interval = strdup(argv[1])) != NULL)
+				peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "preshared-key") && argc >= 2 && peer) {

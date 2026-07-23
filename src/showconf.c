@@ -142,7 +142,7 @@ int showconf_main(int argc, const char *argv[])
 		}
 
 		if (peer->persistent_keepalive_interval)
-			printf("PersistentKeepalive = %u\n", peer->persistent_keepalive_interval);
+			printf("PersistentKeepalive = %s\n", peer->persistent_keepalive_interval);
 
 		if (peer->next_peer)
 			printf("\n");
