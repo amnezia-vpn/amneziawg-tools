@@ -254,8 +254,7 @@ again:
 					goto toobig_peers;
 			}
 			if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL) {
-				if (!mnl_attr_put_u16_check(nlh, SOCKET_BUFFER_SIZE, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, peer->persistent_keepalive_interval))
-					goto toobig_peers;
+				mnl_attr_put_strz(nlh, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, peer->persistent_keepalive_interval);
 			}
 		}
 		if (peer->flags & WGPEER_HAS_AWG) {
@@ -416,8 +415,9 @@ static int parse_peer(const struct nlattr *attr, void *data)
 		break;
 	}
 	case WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL:
-		if (!mnl_attr_validate(attr, MNL_TYPE_U16))
-			peer->persistent_keepalive_interval = mnl_attr_get_u16(attr);
+		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING))
+			if ((peer->persistent_keepalive_interval = strdup(mnl_attr_get_str(attr))) != NULL)
+				peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
 		break;
 	case WGPEER_A_LAST_HANDSHAKE_TIME:
 		if (mnl_attr_get_payload_len(attr) == sizeof(peer->last_handshake_time))
