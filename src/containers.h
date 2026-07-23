@@ -138,7 +138,7 @@ struct wgdevice {
 	char*	 rekey_timeout;
 	char*	 reject_after_time;
 	char*	 keepalive_timeout;
-	char*	 max_handshake_attemps;
+	char*	 max_handshake_attempts;
 };
 
 #define for_each_wgpeer(__dev, __peer) for ((__peer) = (__dev)->first_peer; (__peer); (__peer) = (__peer)->next_peer)
@@ -169,7 +169,7 @@ static inline void free_wgdevice(struct wgdevice *dev)
 	free(dev->rekey_timeout);
 	free(dev->reject_after_time);
 	free(dev->keepalive_timeout);
-	free(dev->max_handshake_attemps);
+	free(dev->max_handshake_attempts);
 
 	free(dev);
 }

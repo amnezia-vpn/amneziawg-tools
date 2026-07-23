@@ -93,7 +93,7 @@ int showconf_main(int argc, const char *argv[])
 	if (device->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
 		printf("KeepaliveTimeout = %s\n", device->keepalive_timeout);
 	if (device->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
-		printf("MaxHandshakeAttempts = %s\n", device->max_handshake_attemps);
+		printf("MaxHandshakeAttempts = %s\n", device->max_handshake_attempts);
 
 	printf("\n");
 	for_each_wgpeer(device, peer) {

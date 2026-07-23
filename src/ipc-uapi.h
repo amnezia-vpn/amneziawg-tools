@@ -99,7 +99,7 @@ static int userspace_set_device(struct wgdevice *dev)
 	if (dev->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
 		fprintf(f, "keepalive_timeout=%s\n", dev->keepalive_timeout);
 	if (dev->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
-		fprintf(f, "max_handshake_attemps=%s\n", dev->max_handshake_attemps);
+		fprintf(f, "max_handshake_attempts=%s\n", dev->max_handshake_attempts);
 
 	for_each_wgpeer(dev, peer) {
 		key_to_hex(hex, peer->public_key);
@@ -304,8 +304,8 @@ static int userspace_get_device(struct wgdevice **out, const char *iface)
 		} else if (!peer && !strcmp(key, "keepalive_timeout")) {
 			if ((dev->keepalive_timeout = strdup(value)) != NULL)
 				dev->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
-		} else if (!peer && !strcmp(key, "max_handshake_attemps")) {
-			if ((dev->max_handshake_attemps = strdup(value)) != NULL)
+		} else if (!peer && !strcmp(key, "max_handshake_attempts")) {
+			if ((dev->max_handshake_attempts = strdup(value)) != NULL)
 				dev->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
 		} else if (!strcmp(key, "public_key")) {
 			struct wgpeer *new_peer = calloc(1, sizeof(*new_peer));

@@ -257,7 +257,7 @@ static void pretty_print(struct wgdevice *device)
 	if (device->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
 		terminal_printf("  " TERMINAL_BOLD "keepalive timeout" TERMINAL_RESET ": %s\n", device->keepalive_timeout);
 	if (device->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
-		terminal_printf("  " TERMINAL_BOLD "max handshake attempts" TERMINAL_RESET ": %s\n", device->max_handshake_attemps);
+		terminal_printf("  " TERMINAL_BOLD "max handshake attempts" TERMINAL_RESET ": %s\n", device->max_handshake_attempts);
 
 	if (device->first_peer) {
 		sort_peers(device);
@@ -321,7 +321,7 @@ static void dump_print(struct wgdevice *device, bool with_interface)
 	printf("%s\t", device->rekey_timeout);
 	printf("%s\t", device->reject_after_time);
 	printf("%s\t", device->keepalive_timeout);
-	printf("%s\t", device->max_handshake_attemps);
+	printf("%s\t", device->max_handshake_attempts);
 
 	if (device->fwmark)
 		printf("0x%x\n", device->fwmark);
@@ -465,7 +465,7 @@ static bool ugly_print(struct wgdevice *device, const char *param, bool with_int
 	} else if (!strcmp(param, "max-handshake-attemps")) {
 		if (with_interface)
 			printf("%s\t", device->name);
-		printf("%s\n", device->max_handshake_attemps);
+		printf("%s\n", device->max_handshake_attempts);
 	} else if (!strcmp(param, "endpoints")) {
 		for_each_wgpeer(device, peer) {
 			if (with_interface)

@@ -560,7 +560,7 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 			if ((ctx->device->keepalive_timeout = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
 		} else if (key_match("MaxHandshakeAttempts")) {
-			if ((ctx->device->max_handshake_attemps = strdup(value)) != NULL)
+			if ((ctx->device->max_handshake_attempts = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
 		} else {
 			goto error;
@@ -884,8 +884,8 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 				device->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
 			argv += 2;
 			argc -= 2;
-		} else if (!strcmp(argv[0], "max-handshake-attemps") && argc >= 2 && !peer) {
-			if ((device->max_handshake_attemps = strdup(argv[1])) != NULL)
+		} else if (!strcmp(argv[0], "max-handshake-attempts") && argc >= 2 && !peer) {
+			if ((device->max_handshake_attempts = strdup(argv[1])) != NULL)
 				device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
 			argv += 2;
 			argc -= 2;
