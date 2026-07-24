@@ -22,6 +22,7 @@
 #include "containers.h"
 #include "encoding.h"
 #include "netlink.h"
+#include "uapi/linux/linux/wireguard.h"
 
 #define IPC_SUPPORTS_KERNEL_INTERFACE
 
@@ -218,6 +219,8 @@ again:
 			mnl_attr_put_strz(nlh, WGDEVICE_A_I4, dev->i4);
 		if (dev->flags & WGDEVICE_HAS_I5)
 			mnl_attr_put_strz(nlh, WGDEVICE_A_I5, dev->i5);
+		if (dev->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY)
+			mnl_attr_put(nlh, WGDEVICE_A_HEADER_PROTECTION_KEY, sizeof(dev->private_key), dev->header_protection_key);
 		if (dev->flags & WGDEVICE_HAS_FWMARK)
 			mnl_attr_put_u32(nlh, WGDEVICE_A_FWMARK, dev->fwmark);
 		if (dev->flags & WGDEVICE_REPLACE_PEERS)
@@ -603,6 +606,12 @@ static int parse_device(const struct nlattr *attr, void *data)
 		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
 			if ((device->i5 = strdup(mnl_attr_get_str(attr))) != NULL)
 				device->flags |= WGDEVICE_HAS_I5;
+		}
+		break;
+	case WGDEVICE_A_HEADER_PROTECTION_KEY:
+		if (mnl_attr_get_payload_len(attr) == sizeof(device->header_protection_key)) {
+			memcpy(device->header_protection_key, mnl_attr_get_payload(attr), sizeof(device->header_protection_key));
+			device->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
 		}
 		break;
 	}
