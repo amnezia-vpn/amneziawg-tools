@@ -681,37 +681,37 @@ static int parse_device(const struct nlattr *attr, void *data)
 		break;
 	case WGDEVICE_A_CONTENT_PADDING_ADDITION:
 		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
-			device->content_padding_addition = mnl_attr_get_u16(attr);
+			device->content_padding_addition = mnl_attr_get_u32(attr);
 			device->flags |= WGDEVICE_HAS_CONTENT_PADDING_ADDITION;
 		}
 		break;
 	case WGDEVICE_A_REKEY_AFTER_TIME:
 		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
-			device->rekey_after_time = mnl_attr_get_u16(attr);
+			device->rekey_after_time = mnl_attr_get_u32(attr);
 			device->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
 		}
 		break;
 	case WGDEVICE_A_REKEY_TIMEOUT:
 		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
-			device->rekey_timeout = mnl_attr_get_u16(attr);
+			device->rekey_timeout = mnl_attr_get_u32(attr);
 			device->flags |= WGDEVICE_HAS_REKEY_TIMEOUT;
 		}
 		break;
 	case WGDEVICE_A_REJECT_AFTER_TIME:
 		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
-			device->reject_after_time = mnl_attr_get_u16(attr);
+			device->reject_after_time = mnl_attr_get_u32(attr);
 			device->flags |= WGDEVICE_HAS_REJECT_AFTER_TIME;
 		}
 		break;
 	case WGDEVICE_A_KEEPALIVE_TIMEOUT:
 		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
-			device->keepalive_timeout = mnl_attr_get_u16(attr);
+			device->keepalive_timeout = mnl_attr_get_u32(attr);
 			device->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
 		}
 		break;
 	case WGDEVICE_A_MAX_HANDSHAKE_ATTEMPTS:
 		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
-			device->max_handshake_attempts = mnl_attr_get_u16(attr);
+			device->max_handshake_attempts = mnl_attr_get_u32(attr);
 			device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
 		}
 		break;
