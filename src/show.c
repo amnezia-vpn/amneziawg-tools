@@ -23,6 +23,7 @@
 #include "terminal.h"
 #include "encoding.h"
 #include "subcommands.h"
+#include "type.h"
 
 static int peer_cmp(const void *first, const void *second)
 {
@@ -173,14 +174,6 @@ static char *ago(const struct timespec64 *t)
 	return buf;
 }
 
-static char *every(uint16_t seconds)
-{
-	static char buf[1024] = "every ";
-
-	pretty_time(buf + strlen("every "), sizeof(buf) - strlen("every ") - 1, seconds);
-	return buf;
-}
-
 static char *bytes(uint64_t b)
 {
 	static char buf[1024];
@@ -202,7 +195,7 @@ static char *bytes(uint64_t b)
 static const char *COMMAND_NAME;
 static void show_usage(void)
 {
-	fprintf(stderr, "Usage: %s %s { <interface> | all | interfaces } [public-key | private-key | listen-port | fwmark | peers | preshared-keys | endpoints | allowed-ips | latest-handshakes | transfer | persistent-keepalive | dump | jc | jmin | jmax | s1 | s2 | s3 | s4 | h1 | h2 | h3 | h4 | i1 | i2 | i3 | i4 | i5]\n", PROG_NAME, COMMAND_NAME);
+	fprintf(stderr, "Usage: %s %s { <interface> | all | interfaces } [public-key | private-key | listen-port | fwmark | peers | preshared-keys | endpoints | allowed-ips | latest-handshakes | transfer | persistent-keepalive | dump | jc | jmin | jmax | s1 | s2 | s3 | s4 | h1 | h2 | h3 | h4 | i1 | i2 | i3 | i4 | i5 | header-protection-key | content-padding-addition | rekey-after-time | rekey-timeout | reject-after-time | keepalive-timeout | max_handshake_attempts]\n", PROG_NAME, COMMAND_NAME);
 }
 
 static void pretty_print(struct wgdevice *device)
@@ -234,14 +227,14 @@ static void pretty_print(struct wgdevice *device)
 		terminal_printf("  " TERMINAL_BOLD "s3" TERMINAL_RESET ": %u\n", device->cookie_reply_packet_junk_size);
 	if (device->transport_packet_junk_size)
 		terminal_printf("  " TERMINAL_BOLD "s4" TERMINAL_RESET ": %u\n", device->transport_packet_junk_size);
-	if (strcmp(device->init_packet_magic_header, "1"))
-		terminal_printf("  " TERMINAL_BOLD "h1" TERMINAL_RESET ": %s\n", device->init_packet_magic_header);
-	if (strcmp(device->response_packet_magic_header, "2"))
-		terminal_printf("  " TERMINAL_BOLD "h2" TERMINAL_RESET ": %s\n", device->response_packet_magic_header);
-	if (strcmp(device->underload_packet_magic_header, "3"))
-		terminal_printf("  " TERMINAL_BOLD "h3" TERMINAL_RESET ": %s\n", device->underload_packet_magic_header);
-	if (strcmp(device->transport_packet_magic_header, "4"))
-		terminal_printf("  " TERMINAL_BOLD "h4" TERMINAL_RESET ": %s\n", device->transport_packet_magic_header);
+	if (device->init_header != u32_range_init(1, 1))
+		terminal_printf("  " TERMINAL_BOLD "h1" TERMINAL_RESET ": %s\n", u32_range_to_string(device->init_header));
+	if (device->resp_header != u32_range_init(2, 2))
+		terminal_printf("  " TERMINAL_BOLD "h2" TERMINAL_RESET ": %s\n", u32_range_to_string(device->resp_header));
+	if (device->cookie_header != u32_range_init(3, 3))
+		terminal_printf("  " TERMINAL_BOLD "h3" TERMINAL_RESET ": %s\n", u32_range_to_string(device->cookie_header));
+	if (device->transport_header != u32_range_init(4, 4))
+		terminal_printf("  " TERMINAL_BOLD "h4" TERMINAL_RESET ": %s\n", u32_range_to_string(device->transport_header));
 	if (device->i1)
 		terminal_printf("  " TERMINAL_BOLD "i1" TERMINAL_RESET ": %s\n", device->i1);
 	if (device->i2)
@@ -252,6 +245,20 @@ static void pretty_print(struct wgdevice *device)
 		terminal_printf("  " TERMINAL_BOLD "i4" TERMINAL_RESET ": %s\n", device->i4);
 	if (device->i5)
 		terminal_printf("  " TERMINAL_BOLD "i5" TERMINAL_RESET ": %s\n", device->i5);
+	if (device->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY)
+		terminal_printf("  " TERMINAL_BOLD "header protection key" TERMINAL_RESET ": %s\n", key(device->header_protection_key));
+	if (!u16_range_is_zero(device->content_padding_addition))
+		terminal_printf("  " TERMINAL_BOLD "content padding addition" TERMINAL_RESET ": %s\n", u16_range_to_string(device->content_padding_addition));
+	if (!u16_range_is_zero(device->rekey_after_time))
+		terminal_printf("  " TERMINAL_BOLD "rekey after time" TERMINAL_RESET ": %s\n", u16_range_to_string(device->rekey_after_time));
+	if (!u16_range_is_zero(device->rekey_timeout))
+		terminal_printf("  " TERMINAL_BOLD "rekey timeout" TERMINAL_RESET ": %s\n", u16_range_to_string(device->rekey_timeout));
+	if (!u16_range_is_zero(device->reject_after_time))
+		terminal_printf("  " TERMINAL_BOLD "reject after time" TERMINAL_RESET ": %s\n", u16_range_to_string(device->reject_after_time));
+	if (!u16_range_is_zero(device->keepalive_timeout))
+		terminal_printf("  " TERMINAL_BOLD "keepalive timeout" TERMINAL_RESET ": %s\n", u16_range_to_string(device->keepalive_timeout));
+	if (!u16_range_is_zero(device->max_handshake_attempts))
+		terminal_printf("  " TERMINAL_BOLD "max handshake attempts" TERMINAL_RESET ": %s\n", u16_range_to_string(device->max_handshake_attempts));
 
 	if (device->first_peer) {
 		sort_peers(device);
@@ -276,8 +283,8 @@ static void pretty_print(struct wgdevice *device)
 			terminal_printf("%s received, ", bytes(peer->rx_bytes));
 			terminal_printf("%s sent\n", bytes(peer->tx_bytes));
 		}
-		if (peer->persistent_keepalive_interval)
-			terminal_printf("  " TERMINAL_BOLD "persistent keepalive" TERMINAL_RESET ": %s\n", every(peer->persistent_keepalive_interval));
+		if (!u16_range_is_zero(peer->persistent_keepalive_interval))
+			terminal_printf("  " TERMINAL_BOLD "persistent keepalive" TERMINAL_RESET ": %s\n", u16_range_to_string(peer->persistent_keepalive_interval));
 		if (peer->next_peer)
 			terminal_printf("\n");
 	}
@@ -300,15 +307,22 @@ static void dump_print(struct wgdevice *device, bool with_interface)
 	printf("%u\t", device->response_packet_junk_size);
 	printf("%u\t", device->cookie_reply_packet_junk_size);
 	printf("%u\t", device->transport_packet_junk_size);
-	printf("%s\t", device->init_packet_magic_header);
-	printf("%s\t", device->response_packet_magic_header);
-	printf("%s\t", device->underload_packet_magic_header);
-	printf("%s\t", device->transport_packet_magic_header);
+	printf("%s\t", u32_range_to_string(device->init_header));
+	printf("%s\t", u32_range_to_string(device->resp_header));
+	printf("%s\t", u32_range_to_string(device->cookie_header));
+	printf("%s\t", u32_range_to_string(device->transport_header));
 	printf("%s\t", device->i1 ? device->i1 : "(null)");
 	printf("%s\t", device->i2 ? device->i2 : "(null)");
 	printf("%s\t", device->i3 ? device->i3 : "(null)");
 	printf("%s\t", device->i4 ? device->i4 : "(null)");
 	printf("%s\t", device->i5 ? device->i5 : "(null)");
+	printf("%s\t", maybe_key(device->header_protection_key, device->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY));
+	printf("%s\t", u16_range_to_string(device->content_padding_addition));
+	printf("%s\t", u16_range_to_string(device->rekey_after_time));
+	printf("%s\t", u16_range_to_string(device->rekey_timeout));
+	printf("%s\t", u16_range_to_string(device->reject_after_time));
+	printf("%s\t", u16_range_to_string(device->keepalive_timeout));
+	printf("%s\t", u16_range_to_string(device->max_handshake_attempts));
 
 	if (device->fwmark)
 		printf("0x%x\n", device->fwmark);
@@ -330,8 +344,8 @@ static void dump_print(struct wgdevice *device, bool with_interface)
 			printf("(none)\t");
 		printf("%llu\t", (unsigned long long)peer->last_handshake_time.tv_sec);
 		printf("%" PRIu64 "\t%" PRIu64 "\t", (uint64_t)peer->rx_bytes, (uint64_t)peer->tx_bytes);
-		if (peer->persistent_keepalive_interval)
-			printf("%u\n", peer->persistent_keepalive_interval);
+		if (!u16_range_is_zero(peer->persistent_keepalive_interval))
+			printf("%s\n", u16_range_to_string(peer->persistent_keepalive_interval));
 		else
 			printf("off\n");
 	}
@@ -392,19 +406,19 @@ static bool ugly_print(struct wgdevice *device, const char *param, bool with_int
 	 } else if (!strcmp(param, "h1")) {
 		if (with_interface)
 			printf("%s\t", device->name);
-		printf("%s\n", device->init_packet_magic_header);
+		printf("%s\n", u32_range_to_string(device->init_header));
 	 } else if (!strcmp(param, "h2")) {
 		if (with_interface)
 			printf("%s\t", device->name);
-		printf("%s\n", device->response_packet_magic_header);
+		printf("%s\n", u32_range_to_string(device->resp_header));
 	 } else if (!strcmp(param, "h3")) {
 		if (with_interface)
 			printf("%s\t", device->name);
-		printf("%s\n", device->underload_packet_magic_header);
+		printf("%s\n", u32_range_to_string(device->cookie_header));
 	 } else if (!strcmp(param, "h4")) {
 		if (with_interface)
 			printf("%s\t", device->name);
-		printf("%s\n", device->transport_packet_magic_header);
+		printf("%s\n", u32_range_to_string(device->transport_header));
 	} else if (!strcmp(param, "i1")) {
 		if (with_interface)
 			printf("%s\t", device->name);
@@ -425,7 +439,35 @@ static bool ugly_print(struct wgdevice *device, const char *param, bool with_int
 		if (with_interface)
 			printf("%s\t", device->name);
 		printf("%s\n", device->i5);
-	 } else if (!strcmp(param, "endpoints")) {
+	} else if (!strcmp(param, "header-protection-key")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", maybe_key(device->header_protection_key, WGDEVICE_HAS_HEADER_PROTECTION_KEY));
+	} else if (!strcmp(param, "content-padding-addition")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", u16_range_to_string(device->content_padding_addition));
+	} else if (!strcmp(param, "rekey-after-time")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", u16_range_to_string(device->rekey_after_time));
+	} else if (!strcmp(param, "rekey-timeout")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", u16_range_to_string(device->rekey_timeout));
+	} else if (!strcmp(param, "reject-after-time")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", u16_range_to_string(device->reject_after_time));
+	} else if (!strcmp(param, "keepalive-timeout")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", u16_range_to_string(device->keepalive_timeout));
+	} else if (!strcmp(param, "max-handshake-attemps")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", u16_range_to_string(device->max_handshake_attempts));
+	} else if (!strcmp(param, "endpoints")) {
 		for_each_wgpeer(device, peer) {
 			if (with_interface)
 				printf("%s\t", device->name);
@@ -462,8 +504,8 @@ static bool ugly_print(struct wgdevice *device, const char *param, bool with_int
 		for_each_wgpeer(device, peer) {
 			if (with_interface)
 				printf("%s\t", device->name);
-			if (peer->persistent_keepalive_interval)
-				printf("%s\t%u\n", key(peer->public_key), peer->persistent_keepalive_interval);
+			if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL)
+				printf("%s\t%s\n", key(peer->public_key), u16_range_to_string(peer->persistent_keepalive_interval));
 			else
 				printf("%s\toff\n", key(peer->public_key));
 		}

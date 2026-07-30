@@ -19,6 +19,7 @@
 #include "ipc.h"
 #include "encoding.h"
 #include "ctype.h"
+#include "type.h"
 
 #define COMMENT_CHAR '#'
 
@@ -286,32 +287,6 @@ static inline bool parse_endpoint(struct sockaddr *endpoint, const char *value)
 	return true;
 }
 
-static inline bool parse_persistent_keepalive(uint16_t *interval, uint32_t *flags, const char *value)
-{
-	unsigned long ret;
-	char *end;
-
-	if (!strcasecmp(value, "off")) {
-		*interval = 0;
-		*flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
-		return true;
-	}
-
-	if (!char_is_digit(value[0]))
-		goto err;
-
-	ret = strtoul(value, &end, 10);
-	if (*end || ret > 65535)
-		goto err;
-
-	*interval = (uint16_t)ret;
-	*flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
-	return true;
-err:
-	fprintf(stderr, "Persistent keepalive interval is neither 0/off nor 1-65535: `%s'\n", value);
-	return false;
-}
-
 static bool validate_netmask(struct wgallowedip *allowedip)
 {
 	uint32_t *ip;
@@ -540,16 +515,20 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_S4;
 		} else if (key_match("H1")) {
-			if ((ctx->device->init_packet_magic_header = strdup(value)) != NULL)
+			ret = u32_range_from_string(&ctx->device->init_header, value);
+			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_H1;
 		} else if (key_match("H2")) {
-			if ((ctx->device->response_packet_magic_header = strdup(value)) != NULL)
+			ret = u32_range_from_string(&ctx->device->resp_header, value);
+			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_H2;
 		} else if (key_match("H3")) {
-			if ((ctx->device->underload_packet_magic_header = strdup(value)) != NULL)
+			ret = u32_range_from_string(&ctx->device->cookie_header, value);
+			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_H3;
 		} else if (key_match("H4")) {
-			if ((ctx->device->transport_packet_magic_header = strdup(value)) != NULL)
+			ret = u32_range_from_string(&ctx->device->transport_header, value);
+			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_H4;
 		} else if (key_match("I1")) {
 			if ((ctx->device->i1 = strdup(value)) != NULL)
@@ -566,6 +545,34 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 		} else if (key_match("I5")) {
 			if ((ctx->device->i5 = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_I5;
+		} else if (key_match("HeaderProtectionKey")) {
+			ret = parse_key(ctx->device->header_protection_key, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
+		} else if (key_match("ContentPaddingAddition")) {
+			ret = u16_range_from_string(&ctx->device->content_padding_addition, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_CONTENT_PADDING_ADDITION;
+		} else if (key_match("RekeyAfterTime")) {
+			ret = u16_range_from_string(&ctx->device->rekey_after_time, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
+		} else if (key_match("RekeyTimeout")) {
+			ret = u16_range_from_string(&ctx->device->rekey_timeout, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_REKEY_TIMEOUT;
+		} else if (key_match("RejectAfterTime")) {
+			ret = u16_range_from_string(&ctx->device->reject_after_time, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_REJECT_AFTER_TIME;
+		} else if (key_match("KeepaliveTimeout")) {
+			ret = u16_range_from_string(&ctx->device->keepalive_timeout, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
+		} else if (key_match("MaxHandshakeAttempts")) {
+			ret = u16_range_from_string(&ctx->device->max_handshake_attempts, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
 		} else {
 			goto error;
 		}
@@ -578,9 +585,11 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 				ctx->last_peer->flags |= WGPEER_HAS_PUBLIC_KEY;
 		} else if (key_match("AllowedIPs"))
 			ret = parse_allowedips(ctx->last_peer, &ctx->last_allowedip, value);
-		else if (key_match("PersistentKeepalive"))
-			ret = parse_persistent_keepalive(&ctx->last_peer->persistent_keepalive_interval, &ctx->last_peer->flags, value);
-		else if (key_match("PresharedKey")) {
+		else if (key_match("PersistentKeepalive")) {
+			ret = u16_range_from_string(&ctx->last_peer->persistent_keepalive_interval, value);
+			if (ret)
+				ctx->last_peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
+		} else if (key_match("PresharedKey")) {
 			ret = parse_key(ctx->last_peer->preshared_key, value);
 			if (ret)
 				ctx->last_peer->flags |= WGPEER_HAS_PRESHARED_KEY;
@@ -812,23 +821,27 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "h1") && argc >= 2 && !peer) {
-			if ((device->init_packet_magic_header = strdup(argv[1])) != NULL)
-				device->flags |= WGDEVICE_HAS_H1;
+			if (!u32_range_from_string(&device->init_header, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_H1;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "h2") && argc >= 2 && !peer) {
-			if ((device->response_packet_magic_header = strdup(argv[1])) != NULL)
-				device->flags |= WGDEVICE_HAS_H2;
+			if (!u32_range_from_string(&device->resp_header, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_H2;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "h3") && argc >= 2 && !peer) {
-			if ((device->underload_packet_magic_header = strdup(argv[1])) != NULL)
-				device->flags |= WGDEVICE_HAS_H3;
+			if (!u32_range_from_string(&device->cookie_header, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_H3;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "h4") && argc >= 2 && !peer) {
-			if ((device->transport_packet_magic_header = strdup(argv[1])) != NULL)
-				device->flags |= WGDEVICE_HAS_H4;
+			if (!u32_range_from_string(&device->transport_header, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_H4;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "i1") && argc >= 2 && !peer) {
@@ -854,6 +867,48 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 		} else if (!strcmp(argv[0], "i5") && argc >= 2 && !peer) {
 			if ((device->i5 = strdup(argv[1])) != NULL)
 				device->flags |= WGDEVICE_HAS_I5;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "header-protection-key") && argc >= 2 && !peer) {
+			if (!parse_keyfile(device->header_protection_key, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "content-padding-addition") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->content_padding_addition, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_CONTENT_PADDING_ADDITION;  
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "rekey-after-time") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->rekey_after_time, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "rekey-timeout") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->rekey_timeout, argv[1]))
+				goto error;	
+			device->flags |= WGDEVICE_HAS_REKEY_TIMEOUT;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "reject-after-time") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->reject_after_time, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_REJECT_AFTER_TIME;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "keepalive-timeout") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->keepalive_timeout, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "max-handshake-attempts") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->max_handshake_attempts, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "peer") && argc >= 2) {
@@ -896,8 +951,9 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "persistent-keepalive") && argc >= 2 && peer) {
-			if (!parse_persistent_keepalive(&peer->persistent_keepalive_interval, &peer->flags, argv[1]))
+			if (!u16_range_from_string(&peer->persistent_keepalive_interval, argv[1]))
 				goto error;
+			peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "preshared-key") && argc >= 2 && peer) {

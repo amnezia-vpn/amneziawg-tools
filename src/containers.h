@@ -6,6 +6,8 @@
 #ifndef CONTAINERS_H
 #define CONTAINERS_H
 
+#include "type.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -63,7 +65,7 @@ struct wgpeer {
 
 	struct timespec64 last_handshake_time;
 	uint64_t rx_bytes, tx_bytes;
-	uint16_t persistent_keepalive_interval;
+	u16_range_t persistent_keepalive_interval;
 
 	bool awg;
 
@@ -92,7 +94,14 @@ enum {
 	WGDEVICE_HAS_I2 = 1U << 17,
 	WGDEVICE_HAS_I3 = 1U << 18,
 	WGDEVICE_HAS_I4 = 1U << 19,
-	WGDEVICE_HAS_I5 = 1U << 20
+	WGDEVICE_HAS_I5 = 1U << 20,
+	WGDEVICE_HAS_HEADER_PROTECTION_KEY = 1U << 21,
+	WGDEVICE_HAS_CONTENT_PADDING_ADDITION = 1U << 22,
+	WGDEVICE_HAS_REKEY_AFTER_TIME = 1U << 23,
+	WGDEVICE_HAS_REKEY_TIMEOUT = 1U << 24,
+	WGDEVICE_HAS_REJECT_AFTER_TIME = 1U << 25,
+	WGDEVICE_HAS_KEEPALIVE_TIMEOUT = 1U << 26,
+	WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS = 1U << 27,
 };
 
 struct wgdevice {
@@ -116,15 +125,12 @@ struct wgdevice {
 	uint16_t response_packet_junk_size;
 	uint16_t cookie_reply_packet_junk_size;
 	uint16_t transport_packet_junk_size;
-	char* init_packet_magic_header;
-	char* response_packet_magic_header;
-	char* underload_packet_magic_header;
-	char* transport_packet_magic_header;
-	char*    i1;
-	char*    i2;
-	char*    i3;
-	char*    i4;
-	char*    i5;
+	u32_range_t init_header, resp_header, cookie_header, transport_header;
+	u16_range_t content_padding_addition, rekey_after_time,
+		rekey_timeout, reject_after_time, keepalive_timeout,
+		max_handshake_attempts;
+	uint8_t header_protection_key[WG_KEY_LEN];
+	char *i1, *i2, *i3, *i4, *i5;
 };
 
 #define for_each_wgpeer(__dev, __peer) for ((__peer) = (__dev)->first_peer; (__peer); (__peer) = (__peer)->next_peer)
@@ -140,16 +146,11 @@ static inline void free_wgdevice(struct wgdevice *dev)
 		free(peer);
 	}
 
-	free(dev->init_packet_magic_header);
-	free(dev->response_packet_magic_header);
-	free(dev->underload_packet_magic_header);
-	free(dev->transport_packet_magic_header);
 	free(dev->i1);
 	free(dev->i2);
 	free(dev->i3);
 	free(dev->i4);
 	free(dev->i5);
-
 	free(dev);
 }
 

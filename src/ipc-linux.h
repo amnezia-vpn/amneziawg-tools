@@ -22,30 +22,10 @@
 #include "containers.h"
 #include "encoding.h"
 #include "netlink.h"
+#include "type.h"
+#include "uapi/linux/linux/wireguard.h"
 
 #define IPC_SUPPORTS_KERNEL_INTERFACE
-
-#define PUT_MAGIC_HEADER(nlh, version, num_var, attr, var) do {\
-	if (version < 2) {\
-		num_var = strtoul(var, NULL, 10);\
-		mnl_attr_put_u32(nlh, attr, num_var);\
-	} else {\
-		mnl_attr_put_strz(nlh, attr, var);\
-	}\
-} while(0)
-
-#define GET_MAGIC_HEADER(attr, num_var, attr_flag, var) do {\
-	if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {\
-		num_var = mnl_attr_get_u32(attr);\
-		if ((var = malloc(12)) != NULL) {\
-			snprintf(var, 12, "%u", num_var);\
-			device->flags |= attr_flag;\
-		}\
-	} else if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {\
-		if ((var = strdup(mnl_attr_get_str(attr))) != NULL)\
-			device->flags |= attr_flag;\
-	}\
-} while(0)
 
 #define SOCKET_BUFFER_SIZE (mnl_ideal_socket_buffer_size())
 
@@ -169,7 +149,6 @@ static int kernel_set_device(struct wgdevice *dev)
 	struct nlattr *peers_nest, *peer_nest, *allowedips_nest, *allowedip_nest;
 	struct nlmsghdr *nlh;
 	struct mnlg_socket *nlg;
-	uint32_t num;
 
 	nlg = mnlg_socket_open(WG_GENL_NAME);
 	if (!nlg)
@@ -200,14 +179,38 @@ again:
 			mnl_attr_put_u16(nlh, WGDEVICE_A_S3, dev->cookie_reply_packet_junk_size);
 		if (dev->flags & WGDEVICE_HAS_S4)
 			mnl_attr_put_u16(nlh, WGDEVICE_A_S4, dev->transport_packet_junk_size);
-		if (dev->flags & WGDEVICE_HAS_H1)
-			PUT_MAGIC_HEADER(nlh, nlg->version, num, WGDEVICE_A_H1, dev->init_packet_magic_header);
-		if (dev->flags & WGDEVICE_HAS_H2)
-			PUT_MAGIC_HEADER(nlh, nlg->version, num, WGDEVICE_A_H2, dev->response_packet_magic_header);
-		if (dev->flags & WGDEVICE_HAS_H3)
-			PUT_MAGIC_HEADER(nlh, nlg->version, num, WGDEVICE_A_H3, dev->underload_packet_magic_header);
-		if (dev->flags & WGDEVICE_HAS_H4)
-			PUT_MAGIC_HEADER(nlh, nlg->version, num, WGDEVICE_A_H4, dev->transport_packet_magic_header);
+		if (dev->flags & WGDEVICE_HAS_H1) {
+			if (nlg->version < 2)
+				mnl_attr_put_u32(nlh, WGDEVICE_A_H1, u32_range_lo(dev->init_header));
+			else if (nlg->version < 3)
+				mnl_attr_put_strz(nlh, WGDEVICE_A_H1, u32_range_to_string(dev->init_header));
+			else
+			 	mnl_attr_put_u64(nlh, WGDEVICE_A_H1, dev->init_header);
+		}
+		if (dev->flags & WGDEVICE_HAS_H2) {
+			if (nlg->version < 2)
+				mnl_attr_put_u32(nlh, WGDEVICE_A_H2, u32_range_lo(dev->resp_header));
+			else if (nlg->version < 3)
+				mnl_attr_put_strz(nlh, WGDEVICE_A_H2, u32_range_to_string(dev->resp_header));
+			else
+			 	mnl_attr_put_u64(nlh, WGDEVICE_A_H2, dev->resp_header);
+		}
+		if (dev->flags & WGDEVICE_HAS_H3) {
+			if (nlg->version < 2)
+				mnl_attr_put_u32(nlh, WGDEVICE_A_H3, u32_range_lo(dev->cookie_header));
+			else if (nlg->version < 3)
+				mnl_attr_put_strz(nlh, WGDEVICE_A_H3, u32_range_to_string(dev->cookie_header));
+			else
+			 	mnl_attr_put_u64(nlh, WGDEVICE_A_H3, dev->cookie_header);
+		}
+		if (dev->flags & WGDEVICE_HAS_H4) {
+			if (nlg->version < 2)
+				mnl_attr_put_u32(nlh, WGDEVICE_A_H4, u32_range_lo(dev->transport_header));
+			else if (nlg->version < 3)
+				mnl_attr_put_strz(nlh, WGDEVICE_A_H4, u32_range_to_string(dev->transport_header));
+			else
+			 	mnl_attr_put_u64(nlh, WGDEVICE_A_H4, dev->transport_header);
+		}
 		if (dev->flags & WGDEVICE_HAS_I1)
 			mnl_attr_put_strz(nlh, WGDEVICE_A_I1, dev->i1);
 		if (dev->flags & WGDEVICE_HAS_I2)
@@ -218,6 +221,20 @@ again:
 			mnl_attr_put_strz(nlh, WGDEVICE_A_I4, dev->i4);
 		if (dev->flags & WGDEVICE_HAS_I5)
 			mnl_attr_put_strz(nlh, WGDEVICE_A_I5, dev->i5);
+		if (dev->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY)
+			mnl_attr_put(nlh, WGDEVICE_A_HEADER_PROTECTION_KEY, sizeof(dev->private_key), dev->header_protection_key);
+		if (dev->flags & WGDEVICE_HAS_CONTENT_PADDING_ADDITION)
+			mnl_attr_put_u32(nlh, WGDEVICE_A_CONTENT_PADDING_ADDITION, dev->content_padding_addition);
+		if (dev->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
+			mnl_attr_put_u32(nlh, WGDEVICE_A_REKEY_AFTER_TIME, dev->rekey_after_time);
+		if (dev->flags & WGDEVICE_HAS_REKEY_TIMEOUT)
+			mnl_attr_put_u32(nlh, WGDEVICE_A_REKEY_TIMEOUT, dev->rekey_timeout);
+		if (dev->flags & WGDEVICE_HAS_REJECT_AFTER_TIME)
+			mnl_attr_put_u32(nlh, WGDEVICE_A_REJECT_AFTER_TIME, dev->reject_after_time);
+		if (dev->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
+			mnl_attr_put_u32(nlh, WGDEVICE_A_KEEPALIVE_TIMEOUT, dev->keepalive_timeout);
+		if (dev->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
+			mnl_attr_put_u32(nlh, WGDEVICE_A_MAX_HANDSHAKE_ATTEMPTS, dev->max_handshake_attempts);
 		if (dev->flags & WGDEVICE_HAS_FWMARK)
 			mnl_attr_put_u32(nlh, WGDEVICE_A_FWMARK, dev->fwmark);
 		if (dev->flags & WGDEVICE_REPLACE_PEERS)
@@ -254,8 +271,10 @@ again:
 					goto toobig_peers;
 			}
 			if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL) {
-				if (!mnl_attr_put_u16_check(nlh, SOCKET_BUFFER_SIZE, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, peer->persistent_keepalive_interval))
-					goto toobig_peers;
+				if (nlg->version < 3)
+					mnl_attr_put_u16(nlh, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, u16_range_lo(peer->persistent_keepalive_interval));
+				else
+					mnl_attr_put_u32(nlh, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, peer->persistent_keepalive_interval);
 			}
 		}
 		if (peer->flags & WGPEER_HAS_AWG) {
@@ -416,8 +435,14 @@ static int parse_peer(const struct nlattr *attr, void *data)
 		break;
 	}
 	case WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL:
-		if (!mnl_attr_validate(attr, MNL_TYPE_U16))
-			peer->persistent_keepalive_interval = mnl_attr_get_u16(attr);
+		if (!mnl_attr_validate(attr, MNL_TYPE_U16)) {
+			peer->persistent_keepalive_interval = u16_range_init(mnl_attr_get_u16(attr), mnl_attr_get_u16(attr));
+			peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
+		}
+		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
+			peer->persistent_keepalive_interval = mnl_attr_get_u32(attr);
+			peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
+		}
 		break;
 	case WGPEER_A_LAST_HANDSHAKE_TIME:
 		if (mnl_attr_get_payload_len(attr) == sizeof(peer->last_handshake_time))
@@ -484,7 +509,6 @@ static int parse_peers(const struct nlattr *attr, void *data)
 static int parse_device(const struct nlattr *attr, void *data)
 {
 	struct wgdevice *device = data;
-	uint32_t num;
 
 	switch (mnl_attr_get_type(attr)) {
 	case WGDEVICE_A_UNSPEC:
@@ -564,16 +588,60 @@ static int parse_device(const struct nlattr *attr, void *data)
 		}
 		break;
 	case WGDEVICE_A_H1:
-		GET_MAGIC_HEADER(attr, num, WGDEVICE_HAS_H1, device->init_packet_magic_header);
+		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
+			device->init_header = u32_range_init(mnl_attr_get_u16(attr), mnl_attr_get_u16(attr));
+			device->flags |= WGDEVICE_HAS_H1;
+		}
+		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
+			if (u32_range_from_string(&device->init_header, mnl_attr_get_str(attr)))
+				device->flags |= WGDEVICE_HAS_H1;
+		}
+		if (!mnl_attr_validate(attr, MNL_TYPE_U64)) {
+			device->init_header = mnl_attr_get_u64(attr);
+			device->flags |= WGDEVICE_HAS_H1;
+		}
 		break;
 	case WGDEVICE_A_H2:
-		GET_MAGIC_HEADER(attr, num, WGDEVICE_HAS_H2, device->response_packet_magic_header);
+		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
+			device->resp_header = u32_range_init(mnl_attr_get_u16(attr), mnl_attr_get_u16(attr));
+			device->flags |= WGDEVICE_HAS_H2;
+		}
+		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
+			if (u32_range_from_string(&device->resp_header, mnl_attr_get_str(attr)))
+				device->flags |= WGDEVICE_HAS_H2;
+		}
+		if (!mnl_attr_validate(attr, MNL_TYPE_U64)) {
+			device->resp_header = mnl_attr_get_u64(attr);
+			device->flags |= WGDEVICE_HAS_H2;
+		}
 		break;
 	case WGDEVICE_A_H3:
-		GET_MAGIC_HEADER(attr, num, WGDEVICE_HAS_H3, device->underload_packet_magic_header);
+		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
+			device->cookie_header = u32_range_init(mnl_attr_get_u16(attr), mnl_attr_get_u16(attr));
+			device->flags |= WGDEVICE_HAS_H3;
+		}
+		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
+			if (u32_range_from_string(&device->cookie_header, mnl_attr_get_str(attr)))
+				device->flags |= WGDEVICE_HAS_H3;
+		}
+		if (!mnl_attr_validate(attr, MNL_TYPE_U64)) {
+			device->cookie_header = mnl_attr_get_u64(attr);
+			device->flags |= WGDEVICE_HAS_H3;
+		}
 		break;
 	case WGDEVICE_A_H4:
-		GET_MAGIC_HEADER(attr, num, WGDEVICE_HAS_H4, device->transport_packet_magic_header);
+		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
+			device->transport_header = u32_range_init(mnl_attr_get_u16(attr), mnl_attr_get_u16(attr));
+			device->flags |= WGDEVICE_HAS_H4;
+		}
+		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
+			if (u32_range_from_string(&device->transport_header, mnl_attr_get_str(attr)))
+				device->flags |= WGDEVICE_HAS_H4;
+		}
+		if (!mnl_attr_validate(attr, MNL_TYPE_U64)) {
+			device->transport_header = mnl_attr_get_u64(attr);
+			device->flags |= WGDEVICE_HAS_H4;
+		}
 		break;
 	case WGDEVICE_A_I1:
 		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
@@ -603,6 +671,48 @@ static int parse_device(const struct nlattr *attr, void *data)
 		if (!mnl_attr_validate(attr, MNL_TYPE_NUL_STRING)) {
 			if ((device->i5 = strdup(mnl_attr_get_str(attr))) != NULL)
 				device->flags |= WGDEVICE_HAS_I5;
+		}
+		break;
+	case WGDEVICE_A_HEADER_PROTECTION_KEY:
+		if (mnl_attr_get_payload_len(attr) == sizeof(device->header_protection_key)) {
+			memcpy(device->header_protection_key, mnl_attr_get_payload(attr), sizeof(device->header_protection_key));
+			device->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
+		}
+		break;
+	case WGDEVICE_A_CONTENT_PADDING_ADDITION:
+		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
+			device->content_padding_addition = mnl_attr_get_u32(attr);
+			device->flags |= WGDEVICE_HAS_CONTENT_PADDING_ADDITION;
+		}
+		break;
+	case WGDEVICE_A_REKEY_AFTER_TIME:
+		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
+			device->rekey_after_time = mnl_attr_get_u32(attr);
+			device->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
+		}
+		break;
+	case WGDEVICE_A_REKEY_TIMEOUT:
+		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
+			device->rekey_timeout = mnl_attr_get_u32(attr);
+			device->flags |= WGDEVICE_HAS_REKEY_TIMEOUT;
+		}
+		break;
+	case WGDEVICE_A_REJECT_AFTER_TIME:
+		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
+			device->reject_after_time = mnl_attr_get_u32(attr);
+			device->flags |= WGDEVICE_HAS_REJECT_AFTER_TIME;
+		}
+		break;
+	case WGDEVICE_A_KEEPALIVE_TIMEOUT:
+		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
+			device->keepalive_timeout = mnl_attr_get_u32(attr);
+			device->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
+		}
+		break;
+	case WGDEVICE_A_MAX_HANDSHAKE_ATTEMPTS:
+		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
+			device->max_handshake_attempts = mnl_attr_get_u32(attr);
+			device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
 		}
 		break;
 	}

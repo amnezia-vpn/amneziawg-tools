@@ -20,3 +20,6 @@ maint/
 x64/
 x86/
 arm64/
+.cache
+compile_commands.json
+.vscode/
