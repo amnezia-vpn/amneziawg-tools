@@ -227,13 +227,13 @@ static void pretty_print(struct wgdevice *device)
 		terminal_printf("  " TERMINAL_BOLD "s3" TERMINAL_RESET ": %u\n", device->cookie_reply_packet_junk_size);
 	if (device->transport_packet_junk_size)
 		terminal_printf("  " TERMINAL_BOLD "s4" TERMINAL_RESET ": %u\n", device->transport_packet_junk_size);
-	if (device->flags & WGDEVICE_HAS_H1)
+	if (device->init_header != u32_range_init(1, 1))
 		terminal_printf("  " TERMINAL_BOLD "h1" TERMINAL_RESET ": %s\n", u32_range_to_string(device->init_header));
-	if (device->flags & WGDEVICE_HAS_H2)
+	if (device->resp_header != u32_range_init(2, 2))
 		terminal_printf("  " TERMINAL_BOLD "h2" TERMINAL_RESET ": %s\n", u32_range_to_string(device->resp_header));
-	if (device->flags & WGDEVICE_HAS_H3)
+	if (device->cookie_header != u32_range_init(3, 3))
 		terminal_printf("  " TERMINAL_BOLD "h3" TERMINAL_RESET ": %s\n", u32_range_to_string(device->cookie_header));
-	if (device->flags & WGDEVICE_HAS_H4)
+	if (device->transport_header != u32_range_init(4, 4))
 		terminal_printf("  " TERMINAL_BOLD "h4" TERMINAL_RESET ": %s\n", u32_range_to_string(device->transport_header));
 	if (device->i1)
 		terminal_printf("  " TERMINAL_BOLD "i1" TERMINAL_RESET ": %s\n", device->i1);
@@ -247,17 +247,17 @@ static void pretty_print(struct wgdevice *device)
 		terminal_printf("  " TERMINAL_BOLD "i5" TERMINAL_RESET ": %s\n", device->i5);
 	if (device->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY)
 		terminal_printf("  " TERMINAL_BOLD "header protection key" TERMINAL_RESET ": %s\n", key(device->header_protection_key));
-	if (device->flags & WGDEVICE_HAS_CONTENT_PADDING_ADDITION)
+	if (!u16_range_is_zero(device->content_padding_addition))
 		terminal_printf("  " TERMINAL_BOLD "content padding addition" TERMINAL_RESET ": %s\n", u16_range_to_string(device->content_padding_addition));
-	if (device->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
+	if (!u16_range_is_zero(device->rekey_after_time))
 		terminal_printf("  " TERMINAL_BOLD "rekey after time" TERMINAL_RESET ": %s\n", u16_range_to_string(device->rekey_after_time));
-	if (device->flags & WGDEVICE_HAS_REKEY_TIMEOUT)
+	if (!u16_range_is_zero(device->rekey_timeout))
 		terminal_printf("  " TERMINAL_BOLD "rekey timeout" TERMINAL_RESET ": %s\n", u16_range_to_string(device->rekey_timeout));
-	if (device->flags & WGDEVICE_HAS_REJECT_AFTER_TIME)
+	if (!u16_range_is_zero(device->reject_after_time))
 		terminal_printf("  " TERMINAL_BOLD "reject after time" TERMINAL_RESET ": %s\n", u16_range_to_string(device->reject_after_time));
-	if (device->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
+	if (!u16_range_is_zero(device->keepalive_timeout))
 		terminal_printf("  " TERMINAL_BOLD "keepalive timeout" TERMINAL_RESET ": %s\n", u16_range_to_string(device->keepalive_timeout));
-	if (device->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
+	if (!u16_range_is_zero(device->max_handshake_attempts))
 		terminal_printf("  " TERMINAL_BOLD "max handshake attempts" TERMINAL_RESET ": %s\n", u16_range_to_string(device->max_handshake_attempts));
 
 	if (device->first_peer) {
@@ -283,7 +283,7 @@ static void pretty_print(struct wgdevice *device)
 			terminal_printf("%s received, ", bytes(peer->rx_bytes));
 			terminal_printf("%s sent\n", bytes(peer->tx_bytes));
 		}
-		if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL)
+		if (!u16_range_is_zero(peer->persistent_keepalive_interval))
 			terminal_printf("  " TERMINAL_BOLD "persistent keepalive" TERMINAL_RESET ": %s\n", u16_range_to_string(peer->persistent_keepalive_interval));
 		if (peer->next_peer)
 			terminal_printf("\n");
@@ -344,7 +344,7 @@ static void dump_print(struct wgdevice *device, bool with_interface)
 			printf("(none)\t");
 		printf("%llu\t", (unsigned long long)peer->last_handshake_time.tv_sec);
 		printf("%" PRIu64 "\t%" PRIu64 "\t", (uint64_t)peer->rx_bytes, (uint64_t)peer->tx_bytes);
-		if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL)
+		if (!u16_range_is_zero(peer->persistent_keepalive_interval))
 			printf("%s\n", u16_range_to_string(peer->persistent_keepalive_interval));
 		else
 			printf("off\n");
