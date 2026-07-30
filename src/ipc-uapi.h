@@ -18,6 +18,7 @@
 #include "curve25519.h"
 #include "encoding.h"
 #include "ctype.h"
+#include "type.h"
 
 #ifdef _WIN32
 #include "ipc-uapi-windows.h"
@@ -66,13 +67,13 @@ static int userspace_set_device(struct wgdevice *dev)
 	if (dev->flags & WGDEVICE_HAS_S4)
 		fprintf(f, "s4=%u\n", dev->transport_packet_junk_size);
 	if (dev->flags & WGDEVICE_HAS_H1)
-		fprintf(f, "h1=%s\n", dev->init_packet_magic_header);
+		fprintf(f, "h1=%s\n", u32_range_to_string(dev->init_header));
 	if (dev->flags & WGDEVICE_HAS_H2)
-		fprintf(f, "h2=%s\n", dev->response_packet_magic_header);
+		fprintf(f, "h2=%s\n", u32_range_to_string(dev->resp_header));
 	if (dev->flags & WGDEVICE_HAS_H3)
-		fprintf(f, "h3=%s\n", dev->underload_packet_magic_header);
+		fprintf(f, "h3=%s\n", u32_range_to_string(dev->cookie_header));
 	if (dev->flags & WGDEVICE_HAS_H4)
-		fprintf(f, "h4=%s\n", dev->transport_packet_magic_header);
+		fprintf(f, "h4=%s\n", u32_range_to_string(dev->transport_header));
 
 	if (dev->flags & WGDEVICE_HAS_I1)
 		fprintf(f, "i1=%s\n", dev->i1);
@@ -89,17 +90,17 @@ static int userspace_set_device(struct wgdevice *dev)
 		fprintf(f, "header_protection_key=%s\n", hex);
 	}
 	if (dev->flags & WGDEVICE_HAS_CONTENT_PADDING_ADDITION)
-		fprintf(f, "content_padding_addition=%s\n", dev->content_padding_addition);
+		fprintf(f, "content_padding_addition=%s\n", u16_range_to_string(dev->content_padding_addition));
 	if (dev->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
-		fprintf(f, "rekey_after_time=%s\n", dev->rekey_after_time);
+		fprintf(f, "rekey_after_time=%s\n", u16_range_to_string(dev->rekey_after_time));
 	if (dev->flags & WGDEVICE_HAS_REKEY_TIMEOUT)
-		fprintf(f, "rekey_timeout=%s\n", dev->rekey_timeout);
+		fprintf(f, "rekey_timeout=%s\n", u16_range_to_string(dev->rekey_timeout));
 	if (dev->flags & WGDEVICE_HAS_REJECT_AFTER_TIME)
-		fprintf(f, "reject_after_time=%s\n", dev->reject_after_time);
+		fprintf(f, "reject_after_time=%s\n", u16_range_to_string(dev->reject_after_time));
 	if (dev->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
-		fprintf(f, "keepalive_timeout=%s\n", dev->keepalive_timeout);
+		fprintf(f, "keepalive_timeout=%s\n", u16_range_to_string(dev->keepalive_timeout));
 	if (dev->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
-		fprintf(f, "max_handshake_attempts=%s\n", dev->max_handshake_attempts);
+		fprintf(f, "max_handshake_attempts=%s\n", u16_range_to_string(dev->max_handshake_attempts));
 
 	for_each_wgpeer(dev, peer) {
 		key_to_hex(hex, peer->public_key);
@@ -130,7 +131,7 @@ static int userspace_set_device(struct wgdevice *dev)
 			}
 		}
 		if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL)
-			fprintf(f, "persistent_keepalive_interval=%s\n", peer->persistent_keepalive_interval);
+			fprintf(f, "persistent_keepalive_interval=%s\n", u16_range_to_string(peer->persistent_keepalive_interval));
 		if (peer->flags & WGPEER_REPLACE_ALLOWEDIPS)
 			fprintf(f, "replace_allowed_ips=true\n");
 		for_each_wgallowedip(peer, allowedip) {
@@ -258,16 +259,16 @@ static int userspace_get_device(struct wgdevice **out, const char *iface)
 			dev->transport_packet_junk_size = NUM(0xffffU);
 			dev->flags |= WGDEVICE_HAS_S4;
 		} else if(!peer && !strcmp(key, "h1")) {
-			if ((dev->init_packet_magic_header = strdup(value)) != NULL)
+			if (u32_range_from_string(&dev->init_header, value))
 				dev->flags |= WGDEVICE_HAS_H1;
 		} else if(!peer && !strcmp(key, "h2")) {
-			if ((dev->response_packet_magic_header = strdup(value)) != NULL)
+			if (u32_range_from_string(&dev->resp_header, value))
 				dev->flags |= WGDEVICE_HAS_H2;
 		} else if(!peer && !strcmp(key, "h3")) {
-			if ((dev->underload_packet_magic_header = strdup(value)) != NULL)
+			if (u32_range_from_string(&dev->cookie_header, value))
 				dev->flags |= WGDEVICE_HAS_H3;
 		} else if(!peer && !strcmp(key, "h4")) {
-			if ((dev->transport_packet_magic_header = strdup(value)) != NULL)
+			if (u32_range_from_string(&dev->transport_header, value))
 				dev->flags |= WGDEVICE_HAS_H4;
 		} else if (!peer && !strcmp(key, "i1")) {
 			if ((dev->i1 = strdup(value)) != NULL)
@@ -290,22 +291,22 @@ static int userspace_get_device(struct wgdevice **out, const char *iface)
 			if (!key_is_zero(dev->header_protection_key))
 				dev->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
 		} else if (!peer && !strcmp(key, "content_padding_addition")) {
-			if ((dev->content_padding_addition = strdup(value)) != NULL)
+			if (u16_range_from_string(&dev->content_padding_addition, value))
 				dev->flags |= WGDEVICE_HAS_CONTENT_PADDING_ADDITION;
 		} else if (!peer && !strcmp(key, "rekey_after_time")) {
-			if ((dev->rekey_after_time = strdup(value)) != NULL)
+			if (u16_range_from_string(&dev->rekey_after_time, value))
 				dev->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
 		} else if (!peer && !strcmp(key, "rekey_timeout")) {
-			if ((dev->rekey_timeout = strdup(value)) != NULL)
+			if (u16_range_from_string(&dev->rekey_timeout, value))
 				dev->flags |= WGDEVICE_HAS_REKEY_TIMEOUT;
 		} else if (!peer && !strcmp(key, "reject_after_time")) {
-			if ((dev->reject_after_time = strdup(value)) != NULL)
+			if (u16_range_from_string(&dev->reject_after_time, value))
 				dev->flags |= WGDEVICE_HAS_REJECT_AFTER_TIME;
 		} else if (!peer && !strcmp(key, "keepalive_timeout")) {
-			if ((dev->keepalive_timeout = strdup(value)) != NULL)
+			if (u16_range_from_string(&dev->keepalive_timeout, value))
 				dev->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
 		} else if (!peer && !strcmp(key, "max_handshake_attempts")) {
-			if ((dev->max_handshake_attempts = strdup(value)) != NULL)
+			if (u16_range_from_string(&dev->max_handshake_attempts, value))
 				dev->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
 		} else if (!strcmp(key, "public_key")) {
 			struct wgpeer *new_peer = calloc(1, sizeof(*new_peer));
@@ -366,7 +367,7 @@ static int userspace_get_device(struct wgdevice **out, const char *iface)
 			}
 			freeaddrinfo(resolved);
 		} else if (peer && !strcmp(key, "persistent_keepalive_interval")) {
-			if ((peer->persistent_keepalive_interval = strdup(value)) != NULL)
+			if (u16_range_from_string(&peer->persistent_keepalive_interval, value))
 				peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
 		} else if (peer && !strcmp(key, "allowed_ip")) {
 			struct wgallowedip *new_allowedip;

@@ -17,6 +17,7 @@
 #include "encoding.h"
 #include "ipc.h"
 #include "subcommands.h"
+#include "type.h"
 
 int showconf_main(int argc, const char *argv[])
 {
@@ -61,13 +62,13 @@ int showconf_main(int argc, const char *argv[])
 	if (device->flags & WGDEVICE_HAS_S4)
 		printf("S4 = %u\n", device->transport_packet_junk_size);
 	if (device->flags & WGDEVICE_HAS_H1)
-		printf("H1 = %s\n", device->init_packet_magic_header);
+		printf("H1 = %s\n", u32_range_to_string(device->init_header));
 	if (device->flags & WGDEVICE_HAS_H2)
-		printf("H2 = %s\n", device->response_packet_magic_header);
+		printf("H2 = %s\n", u32_range_to_string(device->resp_header));
 	if (device->flags & WGDEVICE_HAS_H3)
-		printf("H3 = %s\n", device->underload_packet_magic_header);
+		printf("H3 = %s\n", u32_range_to_string(device->cookie_header));
 	if (device->flags & WGDEVICE_HAS_H4)
-		printf("H4 = %s\n", device->transport_packet_magic_header);
+		printf("H4 = %s\n", u32_range_to_string(device->transport_header));
 	if (device->flags & WGDEVICE_HAS_I1)
 		printf("I1 = %s\n", device->i1);
 	if (device->flags & WGDEVICE_HAS_I2)
@@ -83,17 +84,17 @@ int showconf_main(int argc, const char *argv[])
 		printf("HeaderProtectionKey = %s\n", base64);
 	}
 	if (device->flags & WGDEVICE_HAS_CONTENT_PADDING_ADDITION)
-		printf("ContentPaddingAddition = %s\n", device->content_padding_addition);
+		printf("ContentPaddingAddition = %s\n", u16_range_to_string(device->content_padding_addition));
 	if (device->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
-		printf("RekeyAfterTime = %s\n", device->rekey_after_time);
+		printf("RekeyAfterTime = %s\n", u16_range_to_string(device->rekey_after_time));
 	if (device->flags & WGDEVICE_HAS_REKEY_TIMEOUT)
-		printf("RekeyTimeout = %s\n", device->rekey_timeout);
+		printf("RekeyTimeout = %s\n", u16_range_to_string(device->rekey_timeout));
 	if (device->flags & WGDEVICE_HAS_REJECT_AFTER_TIME)
-		printf("RejectAfterTime = %s\n", device->reject_after_time);
+		printf("RejectAfterTime = %s\n", u16_range_to_string(device->reject_after_time));
 	if (device->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
-		printf("KeepaliveTimeout = %s\n", device->keepalive_timeout);
+		printf("KeepaliveTimeout = %s\n", u16_range_to_string(device->keepalive_timeout));
 	if (device->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
-		printf("MaxHandshakeAttempts = %s\n", device->max_handshake_attempts);
+		printf("MaxHandshakeAttempts = %s\n", u16_range_to_string(device->max_handshake_attempts));
 
 	printf("\n");
 	for_each_wgpeer(device, peer) {
@@ -142,7 +143,7 @@ int showconf_main(int argc, const char *argv[])
 		}
 
 		if (peer->persistent_keepalive_interval)
-			printf("PersistentKeepalive = %s\n", peer->persistent_keepalive_interval);
+			printf("PersistentKeepalive = %s\n", u16_range_to_string(peer->persistent_keepalive_interval));
 
 		if (peer->next_peer)
 			printf("\n");

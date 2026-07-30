@@ -328,6 +328,11 @@ static void mnl_attr_put_u32(struct nlmsghdr *nlh, uint16_t type, uint32_t data)
 	mnl_attr_put(nlh, type, sizeof(uint32_t), &data);
 }
 
+static void mnl_attr_put_u64(struct nlmsghdr *nlh, uint16_t type, uint64_t data)
+{
+	mnl_attr_put(nlh, type, sizeof(uint64_t), &data);
+}
+
 static void mnl_attr_put_strz(struct nlmsghdr *nlh, uint16_t type, const char *data)
 {
 	mnl_attr_put(nlh, type, strlen(data)+1, data);
