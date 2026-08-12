@@ -318,6 +318,11 @@ static void mnl_attr_put(struct nlmsghdr *nlh, uint16_t type, size_t len,
 		memset(mnl_attr_get_payload(attr) + len, 0, pad);
 }
 
+static void mnl_attr_put_u8(struct nlmsghdr *nlh, uint16_t type, uint8_t data)
+{
+	mnl_attr_put(nlh, type, sizeof(uint8_t), &data);
+}
+
 static void mnl_attr_put_u16(struct nlmsghdr *nlh, uint16_t type, uint16_t data)
 {
 	mnl_attr_put(nlh, type, sizeof(uint16_t), &data);

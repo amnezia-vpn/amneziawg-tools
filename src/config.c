@@ -573,6 +573,14 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 			ret = u16_range_from_string(&ctx->device->max_handshake_attempts, value);
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
+		} else if (key_match("RandomTrailers")) {
+			ret = parse_bool(&ctx->device->random_trailers, "RandomTrailers", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_RANDOM_TRAILERS;
+		} else if (key_match("DisableCookies")) {
+			ret = parse_bool(&ctx->device->disable_cookies, "DisableCookies", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_DISABLE_COOKIES;
 		} else {
 			goto error;
 		}
@@ -909,6 +917,18 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 			if (!u16_range_from_string(&device->max_handshake_attempts, argv[1]))
 				goto error;
 			device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "random-trailers") && argc >= 2 && !peer) {
+			if (!parse_bool(&device->random_trailers, "random-trailers", argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_RANDOM_TRAILERS;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "disable-cookies") && argc >= 2 && !peer) {
+			if (!parse_bool(&device->disable_cookies, "disable-cookies", argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_DISABLE_COOKIES;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "peer") && argc >= 2) {

@@ -95,6 +95,10 @@ int showconf_main(int argc, const char *argv[])
 		printf("KeepaliveTimeout = %s\n", u16_range_to_string(device->keepalive_timeout));
 	if (device->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
 		printf("MaxHandshakeAttempts = %s\n", u16_range_to_string(device->max_handshake_attempts));
+	if (device->flags & WGDEVICE_HAS_RANDOM_TRAILERS)
+		printf("RandomTrailers = %s\n", device->random_trailers ? "on" : "off");
+	if (device->flags & WGDEVICE_HAS_DISABLE_COOKIES)
+		printf("DisableCookies = %s\n", device->disable_cookies ? "on" : "off");
 
 	printf("\n");
 	for_each_wgpeer(device, peer) {

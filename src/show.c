@@ -195,7 +195,7 @@ static char *bytes(uint64_t b)
 static const char *COMMAND_NAME;
 static void show_usage(void)
 {
-	fprintf(stderr, "Usage: %s %s { <interface> | all | interfaces } [public-key | private-key | listen-port | fwmark | peers | preshared-keys | endpoints | allowed-ips | latest-handshakes | transfer | persistent-keepalive | dump | jc | jmin | jmax | s1 | s2 | s3 | s4 | h1 | h2 | h3 | h4 | i1 | i2 | i3 | i4 | i5 | header-protection-key | content-padding-addition | rekey-after-time | rekey-timeout | reject-after-time | keepalive-timeout | max_handshake_attempts]\n", PROG_NAME, COMMAND_NAME);
+	fprintf(stderr, "Usage: %s %s { <interface> | all | interfaces } [public-key | private-key | listen-port | fwmark | peers | preshared-keys | endpoints | allowed-ips | latest-handshakes | transfer | persistent-keepalive | dump | jc | jmin | jmax | s1 | s2 | s3 | s4 | h1 | h2 | h3 | h4 | i1 | i2 | i3 | i4 | i5 | header-protection-key | content-padding-addition | rekey-after-time | rekey-timeout | reject-after-time | keepalive-timeout | max_handshake_attempts | random-trailers | disable-cookies]\n", PROG_NAME, COMMAND_NAME);
 }
 
 static void pretty_print(struct wgdevice *device)
@@ -259,6 +259,10 @@ static void pretty_print(struct wgdevice *device)
 		terminal_printf("  " TERMINAL_BOLD "keepalive timeout" TERMINAL_RESET ": %s\n", u16_range_to_string(device->keepalive_timeout));
 	if (!u16_range_is_zero(device->max_handshake_attempts))
 		terminal_printf("  " TERMINAL_BOLD "max handshake attempts" TERMINAL_RESET ": %s\n", u16_range_to_string(device->max_handshake_attempts));
+	if (device->flags & WGDEVICE_HAS_RANDOM_TRAILERS)
+		terminal_printf("  " TERMINAL_BOLD "random trailers" TERMINAL_RESET ": %s\n", device->random_trailers ? "on" : "off");
+	if (device->flags & WGDEVICE_HAS_DISABLE_COOKIES)
+		terminal_printf("  " TERMINAL_BOLD "disable cookies" TERMINAL_RESET ": %s\n", device->disable_cookies ? "on" : "off");
 
 	if (device->first_peer) {
 		sort_peers(device);
@@ -323,6 +327,8 @@ static void dump_print(struct wgdevice *device, bool with_interface)
 	printf("%s\t", u16_range_to_string(device->reject_after_time));
 	printf("%s\t", u16_range_to_string(device->keepalive_timeout));
 	printf("%s\t", u16_range_to_string(device->max_handshake_attempts));
+	printf("%s\t", device->random_trailers ? "on" : "off");
+	printf("%s\t", device->disable_cookies ? "on" : "off");
 
 	if (device->fwmark)
 		printf("0x%x\n", device->fwmark);
@@ -467,6 +473,14 @@ static bool ugly_print(struct wgdevice *device, const char *param, bool with_int
 		if (with_interface)
 			printf("%s\t", device->name);
 		printf("%s\n", u16_range_to_string(device->max_handshake_attempts));
+	} else if (!strcmp(param, "random-trailers")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", device->random_trailers ? "on" : "off");
+	} else if (!strcmp(param, "disable-cookies")) {
+		if (with_interface)
+			printf("%s\t", device->name);
+		printf("%s\n", device->disable_cookies ? "on" : "off");
 	} else if (!strcmp(param, "endpoints")) {
 		for_each_wgpeer(device, peer) {
 			if (with_interface)
