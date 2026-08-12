@@ -51,6 +51,7 @@ parse_options() {
 		stripped="${line%%\#*}"
 		key="${stripped%%=*}"; key="${key##*([[:space:]])}"; key="${key%%*([[:space:]])}"
 		value="${stripped#*=}"; value="${value##*([[:space:]])}"; value="${value%%*([[:space:]])}"
+		unstripped_value="${line#*=}"; unstripped_value="${unstripped_value##*([[:space:]])}"; unstripped_value="${unstripped_value%%*([[:space:]])}"
 		[[ $key == "["* ]] && interface_section=0
 		[[ $key == "[Interface]" ]] && interface_section=1
 		if [[ $interface_section -eq 1 ]]; then
@@ -61,10 +62,10 @@ parse_options() {
 				[[ $v =~ (^[0-9.]+$)|(^.*:.*$) ]] && DNS+=( $v ) || DNS_SEARCH+=( $v )
 			done; continue ;;
 			Table) TABLE="$value"; continue ;;
-			PreUp) PRE_UP+=( "$value" ); continue ;;
-			PreDown) PRE_DOWN+=( "$value" ); continue ;;
-			PostUp) POST_UP+=( "$value" ); continue ;;
-			PostDown) POST_DOWN+=( "$value" ); continue ;;
+			PreUp) PRE_UP+=( "$unstripped_value" ); continue ;;
+			PreDown) PRE_DOWN+=( "$unstripped_value" ); continue ;;
+			PostUp) POST_UP+=( "$unstripped_value" ); continue ;;
+			PostDown) POST_DOWN+=( "$unstripped_value" ); continue ;;
 			SaveConfig) read_bool SAVE_CONFIG "$value"; continue ;;
 			esac
 		fi
@@ -87,7 +88,7 @@ auto_su() {
 
 add_if() {
 	local ret
-	if ! cmd ip link add "$INTERFACE" type amneziawg; then
+	if ! cmd ip link add dev "$INTERFACE" type amneziawg; then
 		ret=$?
 		[[ -e /sys/module/amneziawg ]] || ! command -v "${WG_QUICK_USERSPACE_IMPLEMENTATION:-amneziawg-go}" >/dev/null && exit $ret
 		echo "[!] Missing WireGuard (Amnezia VPN) kernel module. Falling back to slow userspace implementation." >&2
@@ -123,7 +124,7 @@ add_addr() {
 }
 
 set_mtu_up() {
-	local mtu=0 endpoint output
+	local mtu=2147483647 endpoint output
 	if [[ -n $MTU ]]; then
 		cmd ip link set mtu "$MTU" up dev "$INTERFACE"
 		return
@@ -131,18 +132,18 @@ set_mtu_up() {
 	while read -r _ endpoint; do
 		[[ $endpoint =~ ^\[?([a-z0-9:.]+)\]?:[0-9]+$ ]] || continue
 		output="$(ip route get "${BASH_REMATCH[1]}" || true)"
-		[[ ( $output =~ mtu\ ([0-9]+) || ( $output =~ dev\ ([^ ]+) && $(ip link show dev "${BASH_REMATCH[1]}") =~ mtu\ ([0-9]+) ) ) && ${BASH_REMATCH[1]} -gt $mtu ]] && mtu="${BASH_REMATCH[1]}"
+		[[ ( $output =~ mtu\ ([0-9]+) || ( $output =~ dev\ ([^ ]+) && $(ip link show dev "${BASH_REMATCH[1]}") =~ mtu\ ([0-9]+) ) ) && ${BASH_REMATCH[1]} -lt $mtu ]] && mtu="${BASH_REMATCH[1]}"
 	done < <(awg show "$INTERFACE" endpoints)
-	if [[ $mtu -eq 0 ]]; then
+	if [[ $mtu -eq 2147483647 ]]; then
 		read -r output < <(ip route show default || true) || true
-		[[ ( $output =~ mtu\ ([0-9]+) || ( $output =~ dev\ ([^ ]+) && $(ip link show dev "${BASH_REMATCH[1]}") =~ mtu\ ([0-9]+) ) ) && ${BASH_REMATCH[1]} -gt $mtu ]] && mtu="${BASH_REMATCH[1]}"
+		[[ ( $output =~ mtu\ ([0-9]+) || ( $output =~ dev\ ([^ ]+) && $(ip link show dev "${BASH_REMATCH[1]}") =~ mtu\ ([0-9]+) ) ) && ${BASH_REMATCH[1]} -lt $mtu ]] && mtu="${BASH_REMATCH[1]}"
 	fi
-	[[ $mtu -gt 0 ]] || mtu=1500
+	[[ $mtu -gt 0 && $mtu -lt 2147483647 ]] || mtu=1500
 	cmd ip link set mtu $(( mtu - 80 )) up dev "$INTERFACE"
 }
 
 resolvconf_iface_prefix() {
-	[[ -f /etc/resolvconf/interface-order ]] || return 0
+	[[ -f /etc/resolvconf/interface-order && ! -L $(type -P resolvconf) ]] || return 0
 	local iface
 	while read -r iface; do
 		[[ $iface =~ ^([A-Za-z0-9-]+)\*$ ]] || continue
@@ -237,7 +238,7 @@ add_default() {
 	printf -v restore '%sCOMMIT\n*mangle\n-I POSTROUTING -m mark --mark %d -p udp -j CONNMARK --save-mark %s\n-I PREROUTING -p udp -j CONNMARK --restore-mark %s\nCOMMIT\n' "$restore" $table "$marker" "$marker"
 	printf -v nftcmd '%sadd rule %s %s postmangle meta l4proto udp mark %d ct mark set mark \n' "$nftcmd" "$pf" "$nftable" $table
 	printf -v nftcmd '%sadd rule %s %s premangle meta l4proto udp meta mark set ct mark \n' "$nftcmd" "$pf" "$nftable"
-	[[ $proto == -4 ]] && cmd sysctl -q net.ipv4.conf.all.src_valid_mark=1
+	[[ $proto == -4 ]] && [[ $(sysctl -n net.ipv4.conf.all.src_valid_mark) -ne 1 ]] && cmd sysctl -q net.ipv4.conf.all.src_valid_mark=1
 	if type -p nft >/dev/null; then
 		cmd nft -f <(echo -n "$nftcmd")
 	else
@@ -248,7 +249,7 @@ add_default() {
 }
 
 set_config() {
-	cmd awg setconf "$INTERFACE" <(echo "$WG_CONFIG")
+	cmd awg addconf "$INTERFACE" <(echo "$WG_CONFIG")
 }
 
 save_config() {
