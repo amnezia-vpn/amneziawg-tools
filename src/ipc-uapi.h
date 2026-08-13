@@ -101,6 +101,10 @@ static int userspace_set_device(struct wgdevice *dev)
 		fprintf(f, "keepalive_timeout=%s\n", u16_range_to_string(dev->keepalive_timeout));
 	if (dev->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
 		fprintf(f, "max_handshake_attempts=%s\n", u16_range_to_string(dev->max_handshake_attempts));
+	if (dev->flags & WGDEVICE_HAS_RANDOM_TRAILERS)
+		fprintf(f, "random_trailers=%u\n", dev->random_trailers);
+	if (dev->flags & WGDEVICE_HAS_DISABLE_COOKIES)
+		fprintf(f, "disable_cookies=%u\n", dev->disable_cookies);
 
 	for_each_wgpeer(dev, peer) {
 		key_to_hex(hex, peer->public_key);
@@ -308,6 +312,12 @@ static int userspace_get_device(struct wgdevice **out, const char *iface)
 		} else if (!peer && !strcmp(key, "max_handshake_attempts")) {
 			if (u16_range_from_string(&dev->max_handshake_attempts, value))
 				dev->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
+		} else if (!peer && !strcmp(key, "random_trailers")) {
+			dev->random_trailers = NUM(1U);
+			dev->flags |= WGDEVICE_HAS_RANDOM_TRAILERS;
+		} else if (!peer && !strcmp(key, "disable_cookies")) {
+			dev->disable_cookies = NUM(1U);
+			dev->flags |= WGDEVICE_HAS_DISABLE_COOKIES;
 		} else if (!strcmp(key, "public_key")) {
 			struct wgpeer *new_peer = calloc(1, sizeof(*new_peer));
 

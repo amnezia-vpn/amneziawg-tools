@@ -235,6 +235,10 @@ again:
 			mnl_attr_put_u32(nlh, WGDEVICE_A_KEEPALIVE_TIMEOUT, dev->keepalive_timeout);
 		if (dev->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
 			mnl_attr_put_u32(nlh, WGDEVICE_A_MAX_HANDSHAKE_ATTEMPTS, dev->max_handshake_attempts);
+		if (dev->flags & WGDEVICE_HAS_RANDOM_TRAILERS)
+			mnl_attr_put_u8(nlh, WGDEVICE_A_RANDOM_TRAILERS, dev->random_trailers);
+		if (dev->flags & WGDEVICE_HAS_DISABLE_COOKIES)
+			mnl_attr_put_u8(nlh, WGDEVICE_A_DISABLE_COOKIES, dev->disable_cookies);
 		if (dev->flags & WGDEVICE_HAS_FWMARK)
 			mnl_attr_put_u32(nlh, WGDEVICE_A_FWMARK, dev->fwmark);
 		if (dev->flags & WGDEVICE_REPLACE_PEERS)
@@ -713,6 +717,18 @@ static int parse_device(const struct nlattr *attr, void *data)
 		if (!mnl_attr_validate(attr, MNL_TYPE_U32)) {
 			device->max_handshake_attempts = mnl_attr_get_u32(attr);
 			device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
+		}
+		break;
+	case WGDEVICE_A_RANDOM_TRAILERS:
+		if (!mnl_attr_validate(attr, MNL_TYPE_U8)) {
+			device->random_trailers = mnl_attr_get_u8(attr);
+			device->flags |= WGDEVICE_HAS_RANDOM_TRAILERS;
+		}
+		break;
+	case WGDEVICE_A_DISABLE_COOKIES:
+		if (!mnl_attr_validate(attr, MNL_TYPE_U8)) {
+			device->disable_cookies = mnl_attr_get_u8(attr);
+			device->flags |= WGDEVICE_HAS_DISABLE_COOKIES;
 		}
 		break;
 	}
