@@ -11,7 +11,7 @@ while read -r -d $'\t' device; do
 	if [[ $device != "$last_device" ]]; then
 		[[ -z $last_device ]] && printf '\n' || printf '%s,\n' "$end"
 		last_device="$device"
-		read -r private_key public_key listen_port jc jmin jmax s1 s2 s3 s4 h1 h2 h3 h4 i1 i2 i3 i4 i5 fwmark
+		IFS=$'\t' read -r private_key public_key listen_port jc jmin jmax s1 s2 s3 s4 h1 h2 h3 h4 i1 i2 i3 i4 i5 header_protection_key content_padding_addition rekey_after_time rekey_timeout reject_after_time keepalive_timeout max_handshake_attempts random_trailers disable_cookies fwmark
 		printf '\t"%s": {' "$device"
 		delim=$'\n'
 		[[ $private_key == "(none)" ]] || { printf '%s\t\t"privateKey": "%s"' "$delim" "$private_key"; delim=$',\n'; }
@@ -28,16 +28,25 @@ while read -r -d $'\t' device; do
 		[[ $h2 == "2" ]] || { printf '%s\t\t"h2": "%s"' "$delim" "$h2"; delim=$',\n'; }
 		[[ $h3 == "3" ]] || { printf '%s\t\t"h3": "%s"' "$delim" "$h3"; delim=$',\n'; }
 		[[ $h4 == "4" ]] || { printf '%s\t\t"h4": "%s"' "$delim" "$h4"; delim=$',\n'; }
-		[[ $i1 == "(none)" ]] || { printf '%s\t\t"i1": "%s"' "$delim" "$i1"; delim=$',\n'; }
-		[[ $i2 == "(none)" ]] || { printf '%s\t\t"i2": "%s"' "$delim" "$i2"; delim=$',\n'; }
-		[[ $i3 == "(none)" ]] || { printf '%s\t\t"i3": "%s"' "$delim" "$i3"; delim=$',\n'; }
-		[[ $i4 == "(none)" ]] || { printf '%s\t\t"i4": "%s"' "$delim" "$i4"; delim=$',\n'; }
-		[[ $i5 == "(none)" ]] || { printf '%s\t\t"i5": "%s"' "$delim" "$i5"; delim=$',\n'; }
+		[[ $i1 == "(none)" || $i1 == "(null)" ]] || { printf '%s\t\t"i1": "%s"' "$delim" "$i1"; delim=$',\n'; }
+		[[ $i2 == "(none)" || $i2 == "(null)" ]] || { printf '%s\t\t"i2": "%s"' "$delim" "$i2"; delim=$',\n'; }
+		[[ $i3 == "(none)" || $i3 == "(null)" ]] || { printf '%s\t\t"i3": "%s"' "$delim" "$i3"; delim=$',\n'; }
+		[[ $i4 == "(none)" || $i4 == "(null)" ]] || { printf '%s\t\t"i4": "%s"' "$delim" "$i4"; delim=$',\n'; }
+		[[ $i5 == "(none)" || $i5 == "(null)" ]] || { printf '%s\t\t"i5": "%s"' "$delim" "$i5"; delim=$',\n'; }
+		[[ $header_protection_key == "(none)" ]] || { printf '%s\t\t"headerProtectionKey": "%s"' "$delim" "$header_protection_key"; delim=$',\n'; }
+		[[ $content_padding_addition == "0" ]] || { printf '%s\t\t"contentPaddingAddition": "%s"' "$delim" "$content_padding_addition"; delim=$',\n'; }
+		[[ $rekey_after_time == "0" ]] || { printf '%s\t\t"rekeyAfterTime": "%s"' "$delim" "$rekey_after_time"; delim=$',\n'; }
+		[[ $rekey_timeout == "0" ]] || { printf '%s\t\t"rekeyTimeout": "%s"' "$delim" "$rekey_timeout"; delim=$',\n'; }
+		[[ $reject_after_time == "0" ]] || { printf '%s\t\t"rejectAfterTime": "%s"' "$delim" "$reject_after_time"; delim=$',\n'; }
+		[[ $keepalive_timeout == "0" ]] || { printf '%s\t\t"keepaliveTimeout": "%s"' "$delim" "$keepalive_timeout"; delim=$',\n'; }
+		[[ $max_handshake_attempts == "0" ]] || { printf '%s\t\t"maxHandshakeAttempts": "%s"' "$delim" "$max_handshake_attempts"; delim=$',\n'; }
+		[[ $random_trailers == "on" ]] && { printf '%s\t\t"randomTrailers": true' "$delim"; delim=$',\n'; }
+		[[ $disable_cookies == "on" ]] && { printf '%s\t\t"disableCookies": true' "$delim"; delim=$',\n'; }
 		[[ $fwmark == "off" ]] || { printf '%s\t\t"fwmark": %u' "$delim" $(( $fwmark )); delim=$',\n'; }
 		printf '%s\t\t"peers": {' "$delim"; end=$'\n\t\t}\n\t}'
 		delim=$'\n'
 	else
-		read -r public_key preshared_key endpoint allowed_ips latest_handshake transfer_rx transfer_tx persistent_keepalive
+		IFS=$'\t' read -r public_key preshared_key endpoint allowed_ips latest_handshake transfer_rx transfer_tx persistent_keepalive
 		printf '%s\t\t\t"%s": {' "$delim" "$public_key"
 		delim=$'\n'
 		[[ $preshared_key == "(none)" ]] || { printf '%s\t\t\t\t"presharedKey": "%s"' "$delim" "$preshared_key"; delim=$',\n'; }
