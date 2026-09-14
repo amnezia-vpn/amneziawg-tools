@@ -83,17 +83,17 @@ int showconf_main(int argc, const char *argv[])
 		key_to_base64(base64, device->header_protection_key);
 		printf("HeaderProtectionKey = %s\n", base64);
 	}
-	if (device->flags & WGDEVICE_HAS_CONTENT_PADDING_ADDITION)
+	if (!u16_range_is_zero(device->content_padding_addition))
 		printf("ContentPaddingAddition = %s\n", u16_range_to_string(device->content_padding_addition));
-	if (device->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
+	if (!u16_range_is_zero(device->rekey_after_time))
 		printf("RekeyAfterTime = %s\n", u16_range_to_string(device->rekey_after_time));
-	if (device->flags & WGDEVICE_HAS_REKEY_TIMEOUT)
+	if (!u16_range_is_zero(device->rekey_timeout))
 		printf("RekeyTimeout = %s\n", u16_range_to_string(device->rekey_timeout));
-	if (device->flags & WGDEVICE_HAS_REJECT_AFTER_TIME)
+	if (!u16_range_is_zero(device->reject_after_time))
 		printf("RejectAfterTime = %s\n", u16_range_to_string(device->reject_after_time));
-	if (device->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
+	if (!u16_range_is_zero(device->keepalive_timeout))
 		printf("KeepaliveTimeout = %s\n", u16_range_to_string(device->keepalive_timeout));
-	if (device->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
+	if (!u16_range_is_zero(device->max_handshake_attempts))
 		printf("MaxHandshakeAttempts = %s\n", u16_range_to_string(device->max_handshake_attempts));
 	if (device->flags & WGDEVICE_HAS_RANDOM_TRAILERS)
 		printf("RandomTrailers = %s\n", device->random_trailers ? "on" : "off");
