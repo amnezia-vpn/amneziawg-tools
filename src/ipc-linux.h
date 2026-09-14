@@ -211,45 +211,64 @@ again:
 			else
 			 	mnl_attr_put_u64(nlh, WGDEVICE_A_H4, dev->transport_header);
 		}
-		if (dev->flags & WGDEVICE_HAS_I1)
-			mnl_attr_put_strz(nlh, WGDEVICE_A_I1, dev->i1);
-		if (dev->flags & WGDEVICE_HAS_I2)
-			mnl_attr_put_strz(nlh, WGDEVICE_A_I2, dev->i2);
-		if (dev->flags & WGDEVICE_HAS_I3)
-			mnl_attr_put_strz(nlh, WGDEVICE_A_I3, dev->i3);
-		if (dev->flags & WGDEVICE_HAS_I4)
-			mnl_attr_put_strz(nlh, WGDEVICE_A_I4, dev->i4);
-		if (dev->flags & WGDEVICE_HAS_I5)
-			mnl_attr_put_strz(nlh, WGDEVICE_A_I5, dev->i5);
-		if (dev->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY)
-			mnl_attr_put(nlh, WGDEVICE_A_HEADER_PROTECTION_KEY, sizeof(dev->private_key), dev->header_protection_key);
-		if (dev->flags & WGDEVICE_HAS_CONTENT_PADDING_ADDITION)
-			mnl_attr_put_u32(nlh, WGDEVICE_A_CONTENT_PADDING_ADDITION, dev->content_padding_addition);
-		if (dev->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
-			mnl_attr_put_u32(nlh, WGDEVICE_A_REKEY_AFTER_TIME, dev->rekey_after_time);
-		if (dev->flags & WGDEVICE_HAS_REKEY_TIMEOUT)
-			mnl_attr_put_u32(nlh, WGDEVICE_A_REKEY_TIMEOUT, dev->rekey_timeout);
-		if (dev->flags & WGDEVICE_HAS_REJECT_AFTER_TIME)
-			mnl_attr_put_u32(nlh, WGDEVICE_A_REJECT_AFTER_TIME, dev->reject_after_time);
-		if (dev->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
-			mnl_attr_put_u32(nlh, WGDEVICE_A_KEEPALIVE_TIMEOUT, dev->keepalive_timeout);
-		if (dev->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
-			mnl_attr_put_u32(nlh, WGDEVICE_A_MAX_HANDSHAKE_ATTEMPTS, dev->max_handshake_attempts);
-		if (dev->flags & WGDEVICE_HAS_RANDOM_TRAILERS)
-			mnl_attr_put_u8(nlh, WGDEVICE_A_RANDOM_TRAILERS, dev->random_trailers);
-		if (dev->flags & WGDEVICE_HAS_DISABLE_COOKIES)
-			mnl_attr_put_u8(nlh, WGDEVICE_A_DISABLE_COOKIES, dev->disable_cookies);
-		if (dev->flags & WGDEVICE_HAS_FWMARK)
-			mnl_attr_put_u32(nlh, WGDEVICE_A_FWMARK, dev->fwmark);
+		if ((dev->flags & WGDEVICE_HAS_I1) &&
+		    !mnl_attr_put_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_I1, strlen(dev->i1) + 1, dev->i1))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_I2) &&
+		    !mnl_attr_put_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_I2, strlen(dev->i2) + 1, dev->i2))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_I3) &&
+		    !mnl_attr_put_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_I3, strlen(dev->i3) + 1, dev->i3))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_I4) &&
+		    !mnl_attr_put_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_I4, strlen(dev->i4) + 1, dev->i4))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_I5) &&
+		    !mnl_attr_put_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_I5, strlen(dev->i5) + 1, dev->i5))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY) &&
+		    !mnl_attr_put_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_HEADER_PROTECTION_KEY, sizeof(dev->header_protection_key), dev->header_protection_key))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_CONTENT_PADDING_ADDITION) &&
+		    !mnl_attr_put_u32_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_CONTENT_PADDING_ADDITION, dev->content_padding_addition))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_REKEY_AFTER_TIME) &&
+		    !mnl_attr_put_u32_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_REKEY_AFTER_TIME, dev->rekey_after_time))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_REKEY_TIMEOUT) &&
+		    !mnl_attr_put_u32_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_REKEY_TIMEOUT, dev->rekey_timeout))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_REJECT_AFTER_TIME) &&
+		    !mnl_attr_put_u32_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_REJECT_AFTER_TIME, dev->reject_after_time))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT) &&
+		    !mnl_attr_put_u32_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_KEEPALIVE_TIMEOUT, dev->keepalive_timeout))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS) &&
+		    !mnl_attr_put_u32_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_MAX_HANDSHAKE_ATTEMPTS, dev->max_handshake_attempts))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_RANDOM_TRAILERS) &&
+		    !mnl_attr_put_u8_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_RANDOM_TRAILERS, dev->random_trailers))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_DISABLE_COOKIES) &&
+		    !mnl_attr_put_u8_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_DISABLE_COOKIES, dev->disable_cookies))
+			goto toobig_device;
+		if ((dev->flags & WGDEVICE_HAS_FWMARK) &&
+		    !mnl_attr_put_u32_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_FWMARK, dev->fwmark))
+			goto toobig_device;
 		if (dev->flags & WGDEVICE_REPLACE_PEERS)
 			flags |= WGDEVICE_F_REPLACE_PEERS;
-		if (flags)
-			mnl_attr_put_u32(nlh, WGDEVICE_A_FLAGS, flags);
+		if (flags && !mnl_attr_put_u32_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_FLAGS, flags))
+			goto toobig_device;
 	}
 	if (!dev->first_peer)
 		goto send;
 	peers_nest = peer_nest = allowedips_nest = allowedip_nest = NULL;
-	peers_nest = mnl_attr_nest_start(nlh, WGDEVICE_A_PEERS);
+	peers_nest = mnl_attr_nest_start_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_PEERS);
+	if (!peers_nest) {
+		peer = dev->first_peer;
+		goto send;
+	}
 	for (peer = peer ? peer : dev->first_peer; peer; peer = peer->next_peer) {
 		uint32_t flags = 0;
 
@@ -324,6 +343,9 @@ again:
 	mnl_attr_nest_end(nlh, peers_nest);
 	peers_nest = NULL;
 	goto send;
+toobig_device:
+	ret = -EMSGSIZE;
+	goto out;
 toobig_allowedips:
 	if (allowedip_nest)
 		mnl_attr_nest_cancel(nlh, allowedip_nest);
