@@ -196,6 +196,7 @@ static int kernel_get_device(struct wgdevice **device, const char *ifname)
 
 		for (i = 0; i < 4; ++i) {
 			if (version >= WG_AWG_VERSION_3 && nvlist_exists_number(nvl_device, names[i])) {
+				/* Packed as (max << 32) | min, same as u32_range_t. */
 				*ranges[i] = nvlist_get_number(nvl_device, names[i]);
 				dev->flags |= flags[i];
 			} else if (nvlist_exists_binary(nvl_device, names[i])) {
@@ -295,6 +296,7 @@ static int kernel_get_device(struct wgdevice **device, const char *ifname)
 		for (i = 0; i < sizeof(range_params) / sizeof(range_params[0]); ++i) {
 			if (nvlist_exists_number(nvl_device, range_params[i].name) &&
 			    (number = nvlist_get_number(nvl_device, range_params[i].name)) <= UINT32_MAX) {
+				/* Packed as (max << 16) | min, same as u16_range_t. */
 				*range_params[i].range = number;
 				dev->flags |= range_params[i].flag;
 			}
@@ -559,17 +561,23 @@ static int kernel_set_device(struct wgdevice *dev)
 		nvlist_add_binary(nvl_device, "header-protection-key", dev->header_protection_key,
 			sizeof(dev->header_protection_key));
 	if (dev->flags & WGDEVICE_HAS_CONTENT_PADDING_ADDITION)
-		nvlist_add_number(nvl_device, "content-padding-addition", dev->content_padding_addition);
+		nvlist_add_number(nvl_device, "content-padding-addition",
+			dev->content_padding_addition);
 	if (dev->flags & WGDEVICE_HAS_REKEY_AFTER_TIME)
-		nvlist_add_number(nvl_device, "rekey-after-time", dev->rekey_after_time);
+		nvlist_add_number(nvl_device, "rekey-after-time",
+			dev->rekey_after_time);
 	if (dev->flags & WGDEVICE_HAS_REKEY_TIMEOUT)
-		nvlist_add_number(nvl_device, "rekey-timeout", dev->rekey_timeout);
+		nvlist_add_number(nvl_device, "rekey-timeout",
+			dev->rekey_timeout);
 	if (dev->flags & WGDEVICE_HAS_REJECT_AFTER_TIME)
-		nvlist_add_number(nvl_device, "reject-after-time", dev->reject_after_time);
+		nvlist_add_number(nvl_device, "reject-after-time",
+			dev->reject_after_time);
 	if (dev->flags & WGDEVICE_HAS_KEEPALIVE_TIMEOUT)
-		nvlist_add_number(nvl_device, "keepalive-timeout", dev->keepalive_timeout);
+		nvlist_add_number(nvl_device, "keepalive-timeout",
+			dev->keepalive_timeout);
 	if (dev->flags & WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS)
-		nvlist_add_number(nvl_device, "max-handshake-attempts", dev->max_handshake_attempts);
+		nvlist_add_number(nvl_device, "max-handshake-attempts",
+			dev->max_handshake_attempts);
 	if (dev->flags & WGDEVICE_HAS_RANDOM_TRAILERS)
 		nvlist_add_bool(nvl_device, "random-trailers", dev->random_trailers);
 	if (dev->flags & WGDEVICE_HAS_DISABLE_COOKIES)
