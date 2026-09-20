@@ -102,10 +102,16 @@ but has the benefit of not disrupting current peer sessions. The contents of
 \fI<configuration-filename>\fP must be in the format described by
 \fICONFIGURATION FILE FORMAT\fP below.
 .TP
-\fBgenconf\fP
-Generates a random base AmneziaWG configuration with an \fIInterface\fP section
-and prints it to standard output. The generated output includes a private key,
-listen port, junk packet settings, packet junk sizes, and magic headers.
+\fBgenconf\fP [ \fB-v1\fP | \fB-v2\fP | \fB-v3\fP ]
+Generates a random base AmneziaWG configuration with an \fIInterface\fP
+section and prints it to standard output. The optional version flag selects
+the obfuscation dialect: \fB-v1\fP emits junk packets, \fIS1\fP/\fIS2\fP
+padding, and distinct single magic headers; \fB-v2\fP adds \fIS3\fP/\fIS4\fP
+and header ranges; \fB-v3\fP (the default) emits an
+AmneziaWG 3.1 set with equal junk sizes, unique single headers, a
+header-protection key, content padding, randomized protocol timers, and the
+\fIRandomTrailers\fP and \fIDisableCookies\fP flags. The same versions may be
+written as \fB-v\fP \fI1\fP, \fB-v\fP \fI2\fP, or \fB-v\fP \fI3\fP.
 .TP
 \fBgenkey\fP
 Generates a random \fIprivate\fP key in base64 and prints it to

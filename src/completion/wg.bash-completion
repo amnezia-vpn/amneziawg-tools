@@ -9,7 +9,11 @@ _awg_completion() {
 		return
 	fi
 	case "${COMP_WORDS[1]}" in
-		genconf|genkey|genpsk|pubkey|help) return; ;;
+		genconf)
+			COMPREPLY+=( $(compgen -W "-v1 -v2 -v3" -- "${COMP_WORDS[COMP_CWORD]}") )
+			return
+			;;
+		genkey|genpsk|pubkey|help) return; ;;
 		show|showconf|set|setconf|addconf|syncconf) ;;
 		*) return;
 	esac
