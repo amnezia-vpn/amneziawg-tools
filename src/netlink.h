@@ -16,6 +16,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/param.h>
 #include <linux/netlink.h>
 #include <linux/genetlink.h>
 
@@ -24,6 +25,8 @@
 #define MNL_ALIGN(len) (((len)+MNL_ALIGNTO-1) & ~(MNL_ALIGNTO-1))
 #define MNL_NLMSG_HDRLEN MNL_ALIGN(sizeof(struct nlmsghdr))
 #define MNL_ATTR_HDRLEN MNL_ALIGN(sizeof(struct nlattr))
+
+#define SOCKET_BUFFER_SIZE (MAX(mnl_ideal_socket_buffer_size(), (8192 * 2)))
 
 enum mnl_attr_data_type {
 	MNL_TYPE_UNSPEC,
@@ -379,6 +382,12 @@ static bool mnl_attr_put_u32_check(struct nlmsghdr *nlh, size_t buflen,
 	return mnl_attr_put_check(nlh, buflen, type, sizeof(uint32_t), &data);
 }
 
+static bool mnl_attr_put_strz_check(struct nlmsghdr *nlh, size_t buflen,
+				   uint16_t type, const char *data)
+{
+	return mnl_attr_put_check(nlh, buflen, type, strlen(data)+1, data);
+}
+
 static struct nlattr *mnl_attr_nest_start_check(struct nlmsghdr *nlh, size_t buflen,
 						uint16_t type)
 {
@@ -701,7 +710,7 @@ static int mnlg_socket_recv_run(struct mnlg_socket *nlg, mnl_cb_t data_cb, void 
 
 	do {
 		err = mnl_socket_recvfrom(nlg->nl, nlg->buf,
-					  mnl_ideal_socket_buffer_size());
+					  SOCKET_BUFFER_SIZE);
 		if (err <= 0)
 			break;
 		err = mnl_cb_run2(nlg->buf, err, nlg->seq, nlg->portid,
@@ -751,7 +760,7 @@ static struct mnlg_socket *mnlg_socket_open(const char *family_name)
 	nlg->id = 0;
 
 	err = -ENOMEM;
-	nlg->buf = malloc(mnl_ideal_socket_buffer_size());
+	nlg->buf = malloc(SOCKET_BUFFER_SIZE);
 	if (!nlg->buf)
 		goto err_buf_alloc;
 

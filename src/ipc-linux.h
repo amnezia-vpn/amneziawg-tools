@@ -27,8 +27,6 @@
 
 #define IPC_SUPPORTS_KERNEL_INTERFACE
 
-#define SOCKET_BUFFER_SIZE (mnl_ideal_socket_buffer_size())
-
 struct interface {
 	const char *name;
 	bool is_wireguard;
@@ -211,16 +209,6 @@ again:
 			else
 			 	mnl_attr_put_u64(nlh, WGDEVICE_A_H4, dev->transport_header);
 		}
-		if (dev->flags & WGDEVICE_HAS_I1)
-			mnl_attr_put_strz(nlh, WGDEVICE_A_I1, dev->i1);
-		if (dev->flags & WGDEVICE_HAS_I2)
-			mnl_attr_put_strz(nlh, WGDEVICE_A_I2, dev->i2);
-		if (dev->flags & WGDEVICE_HAS_I3)
-			mnl_attr_put_strz(nlh, WGDEVICE_A_I3, dev->i3);
-		if (dev->flags & WGDEVICE_HAS_I4)
-			mnl_attr_put_strz(nlh, WGDEVICE_A_I4, dev->i4);
-		if (dev->flags & WGDEVICE_HAS_I5)
-			mnl_attr_put_strz(nlh, WGDEVICE_A_I5, dev->i5);
 		if (dev->flags & WGDEVICE_HAS_HEADER_PROTECTION_KEY)
 			mnl_attr_put(nlh, WGDEVICE_A_HEADER_PROTECTION_KEY, sizeof(dev->private_key), dev->header_protection_key);
 		if (dev->flags & WGDEVICE_HAS_CONTENT_PADDING_ADDITION)
@@ -245,6 +233,36 @@ again:
 			flags |= WGDEVICE_F_REPLACE_PEERS;
 		if (flags)
 			mnl_attr_put_u32(nlh, WGDEVICE_A_FLAGS, flags);
+		if (dev->flags & WGDEVICE_HAS_I1) {
+			if(!mnl_attr_put_strz_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_I1, dev->i1)) {
+				ret = -EMSGSIZE;
+				goto out;
+			}
+		}
+		if (dev->flags & WGDEVICE_HAS_I2) {
+			if(!mnl_attr_put_strz_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_I2, dev->i2)) {
+				ret = -EMSGSIZE;
+				goto out;
+			}
+		}
+		if (dev->flags & WGDEVICE_HAS_I3) {
+			if(!mnl_attr_put_strz_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_I3, dev->i3)) {
+				ret = -EMSGSIZE;
+				goto out;
+			}
+		}
+		if (dev->flags & WGDEVICE_HAS_I4) {
+			if(!mnl_attr_put_strz_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_I4, dev->i4)) {
+				ret = -EMSGSIZE;
+				goto out;
+			}
+		}
+		if (dev->flags & WGDEVICE_HAS_I5) {
+			if(!mnl_attr_put_strz_check(nlh, SOCKET_BUFFER_SIZE, WGDEVICE_A_I5, dev->i5)) {
+				ret = -EMSGSIZE;
+				goto out;
+			}
+		}
 	}
 	if (!dev->first_peer)
 		goto send;
@@ -275,10 +293,13 @@ again:
 					goto toobig_peers;
 			}
 			if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL) {
-				if (nlg->version < 3)
-					mnl_attr_put_u16(nlh, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, u16_range_lo(peer->persistent_keepalive_interval));
-				else
-					mnl_attr_put_u32(nlh, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, peer->persistent_keepalive_interval);
+				if (nlg->version < 3) {
+					if(!mnl_attr_put_u16_check(nlh, SOCKET_BUFFER_SIZE, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, u16_range_lo(peer->persistent_keepalive_interval)))
+						goto toobig_peers;
+				} else {
+					if(!mnl_attr_put_u32_check(nlh, SOCKET_BUFFER_SIZE, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, peer->persistent_keepalive_interval))
+						goto toobig_peers;
+				}
 			}
 		}
 		if (peer->flags & WGPEER_HAS_AWG) {
