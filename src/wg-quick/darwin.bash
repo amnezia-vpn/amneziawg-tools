@@ -293,16 +293,27 @@ set_endpoint_direct_route() {
 
 set_dns() {
 	collect_new_service_dns
-	local service response
+	local service response current desired_dns desired_search
+	desired_dns="$(printf '%s\n' "${DNS[@]}")"
+	desired_search="$(printf '%s\n' "${DNS_SEARCH[@]}")"
 	for service in "${!SERVICE_DNS[@]}"; do
 		while read -r response; do
 			[[ $response == *Error* ]] && echo "$response" >&2
 		done < <(
-			cmd networksetup -setdnsservers "$service" "${DNS[@]}"
-			if [[ ${#DNS_SEARCH[@]} -eq 0 ]]; then
-				cmd networksetup -setsearchdomains "$service" Empty
-			else
-				cmd networksetup -setsearchdomains "$service" "${DNS_SEARCH[@]}"
+			# Rewriting unchanged preferences emits configuration notifications
+			# and can keep airportd and the network menu busy indefinitely.
+			current="$(networksetup -getdnsservers "$service")"
+			[[ $current == "$desired_dns" ]] || cmd networksetup -setdnsservers "$service" "${DNS[@]}"
+			current="$(networksetup -getsearchdomains "$service")"
+			# networksetup describes an empty list with a sentence, as above
+			# in collect_new_service_dns; domain names cannot contain spaces.
+			[[ $current == *" "* ]] && current=""
+			if [[ $current != "$desired_search" ]]; then
+				if [[ ${#DNS_SEARCH[@]} -eq 0 ]]; then
+					cmd networksetup -setsearchdomains "$service" Empty
+				else
+					cmd networksetup -setsearchdomains "$service" "${DNS_SEARCH[@]}"
+				fi
 			fi
 		)
 	done
