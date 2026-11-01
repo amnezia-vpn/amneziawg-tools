@@ -41,15 +41,17 @@ int u16_range_from_string(u16_range_t *range, const char *str) {
     unsigned long lo, hi;
     char *end;
 
+    errno = 0;
     lo = strtoul(str, &end, 10);
-    if (end == str || lo > UINT32_MAX)
+    if (end == str || errno == ERANGE || lo > UINT16_MAX)
         return false;
 
     if (*end) {
         if (*end != '-')
             return false;
+        errno = 0;
         hi = strtoul(end + 1, &end, 10);
-        if (*end || hi > UINT32_MAX || hi < lo)
+        if (*end || errno == ERANGE || hi > UINT16_MAX || hi < lo)
             return false;
     } else {
         hi = lo;
